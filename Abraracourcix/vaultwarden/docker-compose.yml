@@ -1,0 +1,23 @@
+secrets:
+  vaultwarden_mysql_password:
+    file: /etc/vaultwarden/mysql_password
+
+services:
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:1.22.2
+    secrets:
+      - vaultwarden_mysql_password
+    volumes:
+      - ./data:/data             # where my persisted data already lives
+      - ./etc:/etc/vaultwarden.d # the new scripts directory, mapped to /etc/vaultwarden.d
+    environment:
+      - WEBSOCKET_ENABLED=true
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - SIGNUPS_ALLOWED=false
+    ports:
+      - 17881:80
+      - 13012:3012
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
