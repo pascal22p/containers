@@ -51,6 +51,7 @@ services:
       - /var/lib/docker/containers:/host/var/lib/docker/containers
       - /var/log/nginx:/host/var/log/nginx
       - /var/log/php-fpm:/host/var/log/php-fpm
+      - /var/log/mariadb:/host/var/log/mariadb
       - /var/log/journal:/host/var/log/journal
       - /etc/machine-id:/etc/machine-id
     command: -config.file=/etc/promtail/config.yml

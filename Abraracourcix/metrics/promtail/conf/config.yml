@@ -56,7 +56,6 @@ scrape_configs:
       job: dockerlogs
       host: abraracourcix.debroglie.net
       __path__: /host/var/lib/docker/containers/*/*log
-
   pipeline_stages:
   - json:
       expressions:
@@ -99,3 +98,29 @@ scrape_configs:
   - regex:
       # Flag (?s:.*) needs to be set for regex stage to capture full traceback log in the extracted map.
       expression: '^(?P<time>\[[0-9]+-[a-zA-Z]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+ [^ ]+\]) (?P<message>(?s:.*))'
+
+- job_name: mariadb-audit
+  static_configs:
+  - targets:
+      - abraracourcix.debroglie.net
+    labels:
+      job: mariadb-audit
+      host: abraracourcix.debroglie.net
+      __path__: /host/var/log/mariadb/audit.log
+  pipeline_stages:
+  - regex:
+      expression: '^(?P<time>[^,]+),(?P<serverhost>[^,]+),(?P<username>[^,]+),(?P<host>[^,]+),(?P<connectionid>[^,]+),(?P<queryid>[^,]+),(?P<operation>[^,]+),(?P<database>[^,]+),(?P<object>[^,]+),(?P<retcode>[^,]+)$'
+  - labels:
+      operation:
+      database:
+      username:
+      retcode:
+      
+- job_name: mariadb
+  static_configs:
+  - targets:
+      - abraracourcix.debroglie.net
+    labels:
+      job: mariadb
+      host: abraracourcix.debroglie.net
+      __path__: /host/var/log/mariadb/mariadb.log
