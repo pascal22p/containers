@@ -2,7 +2,7 @@ version: '3'
 services:
   zigbee2mqtt:
     container_name: zigbee2mqtt
-    image: koenkk/zigbee2mqtt
+    image: koenkk/zigbee2mqtt:1.21.0
     volumes: 
       - ./zigbee2mqtt/data:/app/data
       - /un/udev:/run/udev:ro
@@ -18,7 +18,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   homebridge:
-    image: oznu/homebridge:latest
+    image: oznu/homebridge:4.0.0
     container_name: homebridge
     restart: always
     network_mode: host
@@ -36,7 +36,7 @@ services:
 
   homeassistant:
     container_name: homeassistant
-    image: homeassistant/home-assistant:stable
+    image: homeassistant/home-assistant:2021.8.8
     volumes:
       - ./homeassistant/config:/config
       - /etc/localtime:/etc/localtime:ro
