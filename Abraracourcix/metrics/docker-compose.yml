@@ -21,6 +21,9 @@ services:
     restart: always
     environment:
       - TZ=Europe/London
+      - GOCARBON=1
+      - GRAPHITE_WSGI_REQUEST_TIMEOUT=120
+      - GRAPHITE_WSGI_THREADS=1
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}" 
