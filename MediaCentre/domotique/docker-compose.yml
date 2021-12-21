@@ -36,7 +36,7 @@ services:
 
   homeassistant:
     container_name: homeassistant
-    image: homeassistant/home-assistant:2021.11.5
+    image: homeassistant/home-assistant:2021.12.4
     volumes:
       - ./homeassistant/config:/config
       - /etc/localtime:/etc/localtime:ro
