@@ -17,6 +17,10 @@ services:
     entrypoint: memcached -m 256
     networks:
       - seafile-net
+    restart: always
+    logging:
+      options:
+	tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 #  elasticsearch:
 #    image: seafileltd/elasticsearch-with-ik:5.6.16
@@ -57,6 +61,10 @@ services:
 #      - elasticsearch
     networks:
       - seafile-net
+    restart: always
+    logging:
+      options:
+	tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 networks:
   seafile-net:
