@@ -20,7 +20,7 @@ services:
     restart: always
     logging:
       options:
-	tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 #  elasticsearch:
 #    image: seafileltd/elasticsearch-with-ik:5.6.16
@@ -64,7 +64,7 @@ services:
     restart: always
     logging:
       options:
-	tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
 networks:
   seafile-net:
