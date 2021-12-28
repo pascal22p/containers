@@ -38,6 +38,7 @@ services:
     volumes:
       - ./loki/conf:/etc/loki
       - loki-storage:/loki
+    restart: always
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
@@ -60,6 +61,7 @@ services:
     command: -config.file=/etc/promtail/config.yml
     networks:
       - loki
+    restart: always
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

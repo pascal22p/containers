@@ -14,6 +14,7 @@ services:
     ports:
       - 17881:80
       - 13012:3012
+    restart: always
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
