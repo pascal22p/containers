@@ -124,3 +124,20 @@ scrape_configs:
       job: mariadb
       host: abraracourcix.debroglie.net
       __path__: /host/var/log/mariadb/mariadb.log
+
+- job_name: nextcloud
+  static_configs:
+  - targets:
+      - abraracourcix.debroglie.net
+    labels:
+      job: nextcloud
+      host: abraracourcix.debroglie.net
+      __path__: /host/var/log/nextcloud/nextcloud.log
+  pipeline_stages:
+  - json:
+      expressions:
+        app: app
+        user: user
+  - labels:
+      app:
+      user:
