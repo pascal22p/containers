@@ -40,7 +40,7 @@ services:
 #      - seafile-net
           
   seafile:
-    image: docker.seadrive.org/seafileltd/seafile-pro-mc:latest
+    image: docker.seadrive.org/seafileltd/seafile-pro-mc:8.0.17
     container_name: seafile
     ports:
       - "8010:80"
