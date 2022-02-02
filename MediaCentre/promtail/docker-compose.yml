@@ -15,10 +15,12 @@ services:
       - ./promtail/conf:/etc/promtail
       - /var/lib/docker/containers:/host/var/lib/docker/containers
       - /var/log/journal:/host/var/log/journal
+      - /var/log/nginx:/host/var/log/nginx
       - /etc/machine-id:/etc/machine-id
     command: -config.file=/etc/promtail/config.yml
     networks:
       - loki
+    restart: always
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

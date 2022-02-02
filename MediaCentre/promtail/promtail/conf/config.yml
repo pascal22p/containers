@@ -1,0 +1,96 @@
+server:
+  http_listen_address: 0.0.0.0
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+client:
+  url: https://loki.debroglie.net/api/prom/push
+  basic_auth:
+    username: loki
+    password: d495bfc9-6f09-4c01-94ea-c08c974ce4be
+
+scrape_configs:
+- job_name: journal
+  journal:
+    json: true
+    path: /host/var/log/journal
+    labels:
+      job: systemd-journal
+      host: "mediacentre"
+  relabel_configs:
+  - source_labels: ['__journal__systemd_unit']
+    target_label: 'unit'
+    regex: 'session-[0-9]+\.scope'
+    replacement: session
+  - source_labels: ['__journal_syslog_identifier']
+    target_label: 'syslog_identifier'
+  - source_labels: ['__journal_priority']
+    target_label: 'level'
+  pipeline_stages:
+  - template:
+      source: level
+      template: '{{ if eq .Value "0" }}{{ Replace .Value "0" "emerg" 1 }}{{ else if eq .Value "1" }}{{ Replace .Value "1" "alert" 1 }}{{ else if eq .Value "2" }}{{ Replace .Value "2" "crit" 1 }}{{ else if eq .Value "3" }}{{ Replace .Value "3" "err" 1 }}{{ else if eq .Value "4" }}{{ Replace .Value "4" "warning" 1 }}{{ else if eq .Value "5" }}{{ Replace .Value "5" "notice" 1 }}{{ else if eq .Value "6" }}{{ Replace .Value "6" "info" 1 }}{{ else if eq .Value "7" }}{{ Replace .Value "7" "debug" 1 }}{{ end }}'
+  - labels:
+      level:
+
+- job_name: system
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: varlogs
+      host: mediacentre
+      __path__: /var/log/*log
+
+- job_name: docker
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: dockerlogs
+      host: mediacentre
+      __path__: /host/var/lib/docker/containers/*/*log
+
+  pipeline_stages:
+  - json:
+      expressions:
+        output: log
+        stream: stream
+        attrs:
+  - json:
+      expressions:
+        tag:
+      source: attrs
+  - regex:
+      expression: (?P<image_name>(?:[^|]*[^|])).(?P<container_name>(?:[^|]*[^|])).(?P<image_id>(?:[^|]*[^|])).(?P<container_id>(?:[^|]*[^|]))
+      source: tag
+  - timestamp:
+      format: RFC3339Nano
+      source: time
+  - labels:
+      tag:
+      stream:
+      image_name:
+      container_name:
+      image_id:
+      container_id:
+  - output:
+      source: output
+
+- job_name: nginx
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: nginx
+      host: mediacentre
+      __path__: /host/var/log/nginx/*log
+  pipeline_stages:
+  - json:
+      expressions:
+        http_host: http_host
+  - labels:
+      http_host:
