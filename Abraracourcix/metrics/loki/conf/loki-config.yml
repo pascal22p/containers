@@ -50,4 +50,23 @@ ruler:
   enable_api: true
   enable_alertmanager_v2: true
 
+query_range:
+  align_queries_with_step: true
+  parallelise_shardable_queries: false
+  max_retries: 5
+  split_queries_by_interval: 15m
 
+frontend:
+  # Maximum number of outstanding requests per tenant per frontend; requests
+  # beyond this error with HTTP 429.
+  # CLI flag: -querier.max-outstanding-requests-per-tenant
+  max_outstanding_per_tenant: 2048 # default = 100]
+
+  # Compress HTTP responses.
+  # CLI flag: -querier.compress-http-responses
+  compress_responses: true # default = false]
+
+  # Log queries that are slower than the specified duration. Set to 0 to disable.
+  # Set to < 0 to enable on all queries.
+  # CLI flag: -frontend.log-queries-longer-than
+  log_queries_longer_than: 20s
