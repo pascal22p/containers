@@ -35,6 +35,7 @@ services:
     command:
       - '--config.file=/etc/alertmanager/config.yml'
       - '--storage.path=/alertmanager'
+      - '--log.level=debug'
     volumes:
       - ./alertmanager/config:/etc/alertmanager
     ports:
