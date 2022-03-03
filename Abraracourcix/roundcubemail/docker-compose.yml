@@ -6,7 +6,7 @@ services:
     container_name: roundcubemail
     restart: unless-stopped
     ports:
-      - 9044:80
+      - "127.0.0.1:9044:80"
     volumes:
       - ./www:/var/www/html
     environment:

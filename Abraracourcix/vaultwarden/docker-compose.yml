@@ -12,8 +12,8 @@ services:
       - ADMIN_TOKEN=${ADMIN_TOKEN}
       - SIGNUPS_ALLOWED=false
     ports:
-      - 17881:80
-      - 13012:3012
+      - "127.0.0.1:17881:80"
+      - "127.0.0.1:13012:3012"
     restart: always
     logging:
       options:

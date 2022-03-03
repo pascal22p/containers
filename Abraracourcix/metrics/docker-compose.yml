@@ -14,11 +14,13 @@ services:
       - ./graphite/statsd:/opt/statsd/config
       - ./graphite/log:/var/log
     ports:
-      - 7000:80
-      - 2003-2004:2003-2004
-      - 2023-2024:2023-2024
-      - 8125:8125/udp
-      - 8126:8126  
+      - "127.0.0.1:7000:80"
+      - "127.0.0.1:2003-2004:2003-2004"
+      - "127.0.0.1:2023-2024:2023-2024"
+      - "127.0.0.1:8125:8125/udp"
+      - "127.0.0.1:8126:8126"
+    networks:
+      - loki
     restart: always
     environment:
       - TZ=Europe/London
@@ -39,7 +41,7 @@ services:
     volumes:
       - ./alertmanager/config:/etc/alertmanager
     ports:
-      - 9093:9093
+      - "127.0.0.1:9093:9093"
     networks:
       - loki
     restart: always
@@ -50,7 +52,7 @@ services:
   loki:
     image: grafana/loki:2.4.2
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
     command: -config.file=/etc/loki/loki-config.yml
     networks:
       - loki
@@ -68,9 +70,9 @@ services:
   promtail:
     image: grafana/promtail:2.4.2
     ports:
-      - "1514:1514/tcp"
-      - "1514:1514/udp"
-      - "9080:9080"
+      - "127.0.0.1:1514:1514/tcp"
+      - "127.0.0.1:1514:1514/udp"
+      - "127.0.0.1:9080:9080"
     volumes:
       - ./promtail/log:/var/log
       - ./promtail/conf:/etc/promtail
@@ -96,14 +98,14 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
     ports:
-      - 3000:3000
+      - "127.0.0.1:3000:3000"
+    networks:
+      - loki
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_DOMAIN=grafana.parois.net
+      - GF_SERVER_DOMAIN=grafana.debroglie.net
       - GF_SMTP_ENABLED=true
-    networks:
-      - loki
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
