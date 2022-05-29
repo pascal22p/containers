@@ -26,6 +26,8 @@ compactor:
 
 limits_config:
   retention_period: 744h
+  ingestion_rate_mb: 8
+  split_queries_by_interval: 24h
 
 schema_config:
   configs:
@@ -54,7 +56,6 @@ query_range:
   align_queries_with_step: true
   parallelise_shardable_queries: false
   max_retries: 5
-  split_queries_by_interval: 15m
 
 frontend:
   # Maximum number of outstanding requests per tenant per frontend; requests
