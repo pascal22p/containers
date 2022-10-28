@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  mongodb1:
+    image: percona/percona-server-mongodb:4.4
+    container_name: mongodb1
+    command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "30001"]
+    ports:
+      - 27017:30001
+    volumes:
+      - mongo-storage:/data/db
+    restart: always
+    healthcheck:
+      test: test $$(echo "rs.initiate({_id:'my-replica-set',members:[{_id:0,host:\"mongo1:30001\"}]}).ok || rs.status().ok" | mongo --port 30001 --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=
+      - MONGO_INITDB_ROOT_PASSWORD=
+
+volumes:
+  mongo-storage:
+    name: mongo-storage
+    external: true
