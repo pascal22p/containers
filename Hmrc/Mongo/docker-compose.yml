@@ -2,7 +2,7 @@ version: '3.9'
 
 services:
   mongodb1:
-    image: percona/percona-server-mongodb:4.4
+    image: percona/percona-server-mongodb:5.0
     container_name: mongodb1
     command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "30001"]
     ports:
