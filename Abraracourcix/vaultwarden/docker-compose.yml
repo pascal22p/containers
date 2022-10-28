@@ -3,7 +3,7 @@ version: '3.8'
 services:
   vaultwarden:
     container_name: vaultwarden
-    image: vaultwarden/server:1.23.0
+    image: vaultwarden/server:1.25.2
     volumes:
       - ./data:/data             # where my persisted data already lives
       - ./etc:/etc/vaultwarden.d # the new scripts directory, mapped to /etc/vaultwarden.d
@@ -12,8 +12,9 @@ services:
       - ADMIN_TOKEN=${ADMIN_TOKEN}
       - SIGNUPS_ALLOWED=false
     ports:
-      - 17881:80
-      - 13012:3012
+      - "127.0.0.1:17881:80"
+      - "127.0.0.1:13012:3012"
+    restart: always
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

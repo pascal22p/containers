@@ -1,0 +1,20 @@
+version: '3'
+services:
+  seafile:
+    image: docker.seadrive.org/seafileltd/seafile-pro-mc:9.0.5
+    container_name: seafile
+    ports:
+      - "127.0.0.1:8010:80"
+#     - "443:443"  # If https is enabled, cancel the comment.
+    volumes:
+      - ./seafile-data:/shared   # Requested, specifies the path to Seafile data persistent store.
+    environment:
+      - DB_HOST=db
+      - DB_ROOT_PASSWD=db_dev  # Requested, the value shuold be root's password of MySQL service.
+      - SEAFILE_SERVER_LETSENCRYPT=false   # Whether to use https or not
+      - SEAFILE_SERVER_HOSTNAME=seafile.parois.net # Specifies your host name if https is enabled
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
