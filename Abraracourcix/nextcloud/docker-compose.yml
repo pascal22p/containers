@@ -2,7 +2,7 @@ version: "3"
 
 services:
   nextcloud:
-    image: nextcloud:24.0.5
+    image: nextcloud:24.0.7
     restart: always
     ports:
       - "127.0.0.1:8087:80"
