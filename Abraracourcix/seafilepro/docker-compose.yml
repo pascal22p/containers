@@ -1,7 +1,7 @@
 version: '3'
 services:
   seafile:
-    image: docker.seadrive.org/seafileltd/seafile-pro-mc:9.0.5
+    image: docker.seadrive.org/seafileltd/seafile-pro-mc:9.0.12
     container_name: seafile
     ports:
       - "127.0.0.1:8010:80"
