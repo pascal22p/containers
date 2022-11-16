@@ -6,7 +6,7 @@ services:
     container_name: mongodb1
     command: ["--replSet", "my-replica-set", "--bind_ip_all", "--port", "30001"]
     ports:
-      - 27017:30001
+      - 127.0.0.1:27017:30001
     volumes:
       - mongo-storage:/data/db
     restart: always
