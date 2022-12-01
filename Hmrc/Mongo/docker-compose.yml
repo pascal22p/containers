@@ -21,4 +21,4 @@ services:
 volumes:
   mongo-storage:
     name: mongo-storage
-    external: true
+    
