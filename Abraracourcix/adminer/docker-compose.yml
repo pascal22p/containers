@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  adminer:
+    image: adminer:4.8.1
+    container_name: adminer
+    environment:
+      ADMINER_DEFAULT_DB_DRIVER: mysql
+      ADMINER_DEFAULT_DB_HOST: host.docker.internal
+      ADMINER_DEFAULT_SERVER: host.docker.internal
+      ADMINER_DESIGN: nette
+      ADMINER_PLUGINS: tables-filter tinymce
+    ports:
+      - 127.0.0.1:9564:8080
