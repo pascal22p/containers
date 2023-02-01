@@ -4,6 +4,7 @@ services:
   adminer:
     image: adminer:4.8.1
     container_name: adminer
+    restart: unless-stopped
     environment:
       ADMINER_DEFAULT_DB_DRIVER: mysql
       ADMINER_DEFAULT_DB_HOST: host.docker.internal

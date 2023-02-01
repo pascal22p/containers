@@ -1,0 +1,25 @@
+version: '3'
+
+services:
+  postfixadmin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: postfixadmin
+    ports:
+      - "127.0.0.1:9033:80"
+    restart: always
+    volumes:
+      - ./www:/var/www/html
+    environment:
+      POSTFIXADMIN_DB_TYPE: mysqli
+      POSTFIXADMIN_DB_HOST: 172.17.0.1
+      POSTFIXADMIN_DB_USER: mail
+      POSTFIXADMIN_DB_NAME: mail
+      POSTFIXADMIN_DB_PASSWORD: ${POSTFIXADMIN_DB_PASSWORD}
+      POSTFIXADMIN_SMTP_SERVER: postfix
+      POSTFIXADMIN_SMTP_PORT: 25
+      POSTFIXADMIN_ENCRYPT: "dovecot:ARGON2I"
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
