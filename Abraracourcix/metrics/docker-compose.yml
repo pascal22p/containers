@@ -6,7 +6,7 @@ networks:
 services:
   graphite:
     container_name: graphite
-    image: graphiteapp/graphite-statsd:1.1.8-5
+    image: graphiteapp/graphite-statsd:1.1.10-5
 
     volumes:
       - ./graphite/storage:/opt/graphite/storage
