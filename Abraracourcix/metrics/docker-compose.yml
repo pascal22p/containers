@@ -68,7 +68,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   promtail:
-    image: grafana/promtail:2.9.1
+    image: grafana/promtail:2.9.2
     ports:
       - "127.0.0.1:1514:1514/tcp"
       - "127.0.0.1:1514:1514/udp"
