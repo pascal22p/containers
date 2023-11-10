@@ -2,7 +2,7 @@ version: '3'
 
 services:
   roundcubemail:
-    image: roundcube/roundcubemail:1.6.3-apache
+    image: roundcube/roundcubemail:1.6.5-apache
     container_name: roundcubemail
     restart: unless-stopped
     ports:
