@@ -10,10 +10,10 @@ services:
       - TZ=Etc/UTC
     volumes:
       - ./config:/config
-      - ./log:/var/log #optional
+      - ./log:/var/log
     ports:
-      - 127.0.0.1:5514:5514/udp
-#      - 127.0.0.1:601:6601/tcp
+      - 5514:5514/udp
+      - 127.0.0.1:601:6601/tcp
 #      - 127.0.0.1:6514:6514/tcp
-    restart: always
+    restart: never
 
