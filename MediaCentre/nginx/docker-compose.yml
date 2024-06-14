@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:mainline-alpine3.19-otel
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    network_mode: "host"
+    volumes:
+      - ./conf/:/etc/nginx/
+      - ./letsencrypt/:/etc/letsencrypt/
+      - ./ssl/:/etc/ssl/
+      - ./logs/:/var/log/nginx/
+
