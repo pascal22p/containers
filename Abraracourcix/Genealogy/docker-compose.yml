@@ -1,0 +1,13 @@
+services:
+  genealogy:
+    image: genealogie:0.1.0
+    container_name: genealogie
+    restart: unless-stopped
+    environment:
+      APP_SECRET: ${APP_SECRET} 
+      DB_URL: ${DB_URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+    ports:
+      - 127.0.0.1:9123:9123
