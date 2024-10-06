@@ -51,6 +51,7 @@ services:
 
   loki:
     image: grafana/loki:3.0.0
+    container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
     command: -config.file=/etc/loki/loki-config.yml
@@ -69,6 +70,7 @@ services:
 
   promtail:
     image: grafana/promtail:3.0.0
+    container_name: promtail
     ports:
       - "127.0.0.1:1514:1514/tcp"
       - "127.0.0.1:1514:1514/udp"
@@ -77,10 +79,11 @@ services:
       - ./promtail/log:/var/log
       - ./promtail/conf:/etc/promtail
       - /var/lib/docker/containers:/host/var/lib/docker/containers
-      - /var/log/nginx:/host/var/log/nginx
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
       - /var/log/php-fpm:/host/var/log/php-fpm
       - /var/log/mariadb:/host/var/log/mariadb
       - /var/log/journal:/host/var/log/journal
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx-docker
       - /etc/machine-id:/etc/machine-id
       - /home/containers/Abraracourcix/nextcloud/nextcloud/www/data:/host/var/log/nextcloud
     command: -config.file=/etc/promtail/config.yml
@@ -102,6 +105,7 @@ services:
     networks:
       - loki
     environment:
+      - GF_LOG_LEVEL=debug
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_DOMAIN=grafana.debroglie.net
