@@ -99,6 +99,25 @@ scrape_configs:
       source: timestamp
       format: "29/May/2022:18:04:00 +0000"
 
+- job_name: nginx-docker-stream
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: nginx-docker-stream
+      host: mediacentre
+      __path__: /host/var/log/nginx-docker/stream_*log
+  pipeline_stages:
+  - regex:
+      expression: '^(?P<ip>[^ ]+) \[(?P<timestamp>.+)\] (?P<protocol>[^ ]+) (?P<status>[0-9]+) (?P<bytesent>[0-9]+) (?P<bytereceived>[0-9]+) (?P<sessiontime>[0-9.]+)'
+  - labels:
+      status:
+      protocol:
+      ip:
+  - timestamp:
+      source: timestamp
+      format: "29/May/2022:18:04:00 +0000"
+
 - job_name: nginx
   static_configs:
   - targets:
@@ -108,6 +127,22 @@ scrape_configs:
       host: mediacentre
       __path__: /host/var/log/nginx/*log
       __path_exclude__: /host/var/log/nginx/stream_*log
+  pipeline_stages:
+  - json:
+      expressions:
+        http_host: http_host
+  - labels:
+      http_host:
+
+- job_name: nginx-docker
+  static_configs:
+  - targets:
+      - localhost
+    labels:
+      job: nginx-docker
+      host: mediacentre
+      __path__: /host/var/log/nginx-docker/*log
+      __path_exclude__: /host/var/log/nginx-docker/stream_*log
   pipeline_stages:
   - json:
       expressions:

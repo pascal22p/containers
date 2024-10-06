@@ -50,7 +50,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   loki:
-    image: grafana/loki:3.0.0
+    image: grafana/loki:3.2.0
     container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
@@ -69,7 +69,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   promtail:
-    image: grafana/promtail:3.0.0
+    image: grafana/promtail:3.2.0
     container_name: promtail
     ports:
       - "127.0.0.1:1514:1514/tcp"
@@ -95,7 +95,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   grafana:
-    image: grafana/grafana:11.0.0
+    image: grafana/grafana:11.2.2
     container_name: grafana
     restart: always
     volumes:
