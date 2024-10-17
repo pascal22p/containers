@@ -69,7 +69,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   promtail:
-    image: grafana/promtail:3.2.0
+    image: grafana/promtail:3.2.1
     container_name: promtail
     ports:
       - "127.0.0.1:1514:1514/tcp"
