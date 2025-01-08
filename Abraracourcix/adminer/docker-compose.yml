@@ -4,6 +4,7 @@ services:
   adminer:
     image: adminer:4.8.1
     container_name: adminer
+    network_mode: "host"
     restart: unless-stopped
     environment:
       ADMINER_DEFAULT_DB_DRIVER: mysql
@@ -11,5 +12,5 @@ services:
       ADMINER_DEFAULT_SERVER: host.docker.internal
       ADMINER_DESIGN: nette
       ADMINER_PLUGINS: tables-filter tinymce
-    ports:
-      - 127.0.0.1:9564:8080
+    #ports:
+    #  - 127.0.0.1:9564:8080

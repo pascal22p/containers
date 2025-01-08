@@ -1,10 +1,11 @@
 services:
   genealogy:
-    image: genealogie:0.1.0
-    container_name: genealogie
+    platform: linux/amd64
+    image: pascal22p/genealogy:latest
+    container_name: genealogy
     restart: unless-stopped
     environment:
-      APP_SECRET: ${APP_SECRET} 
+      APP_SECRET: ${APP_SECRET}
       DB_URL: ${DB_URL}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}

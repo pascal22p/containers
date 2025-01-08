@@ -12,4 +12,5 @@ services:
       - ./letsencrypt/:/etc/letsencrypt/
       - ./ssl/:/etc/ssl/
       - ./logs/:/var/log/nginx/
+      - ./client_certs:/etc/nginx/client_certs
 

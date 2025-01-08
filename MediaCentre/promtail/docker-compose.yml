@@ -5,7 +5,8 @@ networks:
 
 services:
   promtail:
-    image: grafana/promtail:3.0.0
+    image: grafana/promtail:3.3.2
+    container_name: promtail
     ports:
       - "1514:1514/tcp"
       - "1514:1514/udp"
@@ -16,6 +17,7 @@ services:
       - /var/lib/docker/containers:/host/var/lib/docker/containers
       - /var/log/journal:/host/var/log/journal
       - /var/log/nginx:/host/var/log/nginx
+      - /opt/containers/MediaCentre/nginx/logs/:/host/var/log/nginx-docker
       - /etc/machine-id:/etc/machine-id
     command: -config.file=/etc/promtail/config.yml
     networks:
