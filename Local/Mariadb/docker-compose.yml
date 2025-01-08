@@ -1,0 +1,23 @@
+version: '3.7'
+services:
+  mariadb:
+    image: mariadb:latest
+    container_name: mariadb
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+    ports:
+      - 3306:3306
+    volumes:
+      - mariadb_db_data_container:/var/lib/mysql
+
+  adminer:
+    image: adminer:latest
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+    ports:
+      - 8080:8080
+    links:
+      - mariadb
+
+volumes:
+  mariadb_db_data_container:
