@@ -9,6 +9,7 @@ services:
       - 3306:3306
     volumes:
       - mariadb_db_data_container:/var/lib/mysql
+    command: --event-scheduler=ON
 
   adminer:
     image: adminer:latest
