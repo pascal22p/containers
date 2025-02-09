@@ -4,6 +4,23 @@ networks:
   loki:
 
 services:
+  carbon-relay-ng:
+    image: grafana/carbon-relay-ng:1.5.2
+    container_name: carbon-relay-ng
+    volumes:
+      - ./carbon-relay/etc:/etc/carbon-relay-ng
+    ports:
+      - "127.0.0.1:2013:2013"
+      - "127.0.0.1:8081:8081"
+    networks:
+      - loki
+    restart: always
+    environment:
+      - TZ=Europe/London
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
   graphite:
     container_name: graphite
     image: graphiteapp/graphite-statsd:1.1.10-5
@@ -83,13 +100,39 @@ services:
       - /var/log/php-fpm:/host/var/log/php-fpm
       - /var/log/mariadb:/host/var/log/mariadb
       - /var/log/journal:/host/var/log/journal
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx-docker
       - /etc/machine-id:/etc/machine-id
-      - /home/containers/Abraracourcix/nextcloud/nextcloud/www/data:/host/var/log/nextcloud
     command: -config.file=/etc/promtail/config.yml
     networks:
       - loki
     restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  promtail-remote:
+    image: grafana/promtail:3.3.2
+    container_name: promtail-remote
+    ports:
+      - "127.0.0.1:1515:1514/tcp"
+      - "127.0.0.1:1515:1514/udp"
+      - "127.0.0.1:9081:9080"
+    volumes:
+      - ./promtail-remote/log:/var/log
+      - ./promtail-remote/conf:/etc/promtail
+      - /var/lib/docker/containers:/host/var/lib/docker/containers
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
+      - /var/log/php-fpm:/host/var/log/php-fpm
+      - /var/log/mariadb:/host/var/log/mariadb
+      - /var/log/journal:/host/var/log/journal
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx-docker
+      - /etc/machine-id:/etc/machine-id
+    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
+    networks:
+      - loki
+    restart: always
+    environment:
+      - LOKI_ID=${LOKI_ID}
+      - LOKI_TOKEN=${LOKI_TOKEN}
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

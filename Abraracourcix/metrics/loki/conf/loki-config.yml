@@ -32,7 +32,7 @@ limits_config:
   retention_stream:
     - selector: '{job="mariadb-audit"}'
       priority: 1
-      period: 168h
+      period: 120h
 
 schema_config:
   configs:
