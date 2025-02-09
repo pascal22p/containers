@@ -2,7 +2,7 @@ version: "3"
 
 services:
   syslog-ng:
-    image: lscr.io/linuxserver/syslog-ng:4.7.1
+    image: lscr.io/linuxserver/syslog-ng:4.8.1
     container_name: syslog-ng
     environment:
       - PUID=1000
