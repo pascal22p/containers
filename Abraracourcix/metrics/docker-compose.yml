@@ -66,8 +66,6 @@ services:
       - ./loki/conf:/etc/loki
       - loki-storage:/loki
       - ./loki/rules:/etc/loki/rules
-    depends_on:
-     - alertmanager
     restart: always
     logging:
       options:
