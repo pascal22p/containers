@@ -54,7 +54,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}" 
 
   loki:
-    image: grafana/loki:3.3.2
+    image: grafana/loki:3.4.1
     container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
