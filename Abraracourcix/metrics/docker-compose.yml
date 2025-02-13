@@ -1,4 +1,3 @@
-version: '3.8'
 
 networks:
   loki:
@@ -59,7 +58,7 @@ services:
     container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
-    command: -config.file=/etc/loki/loki-config.yml
+    command: -config.file=/etc/loki/loki-config.yml -config.expand-env=true
     networks:
       - loki
     volumes:
@@ -67,6 +66,10 @@ services:
       - loki-storage:/loki
       - ./loki/rules:/etc/loki/rules
     restart: always
+    environment:
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET=${S3_SECRET}
+      - S3_BUCKET=${S3_BUCKET}
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
