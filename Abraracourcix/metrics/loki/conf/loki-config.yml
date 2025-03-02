@@ -3,6 +3,7 @@ auth_enabled: false
 server:
   http_listen_port: 3100
   grpc_listen_port: 9096
+  log_level: "error"
 
 storage_config:
   tsdb_shipper:
@@ -102,3 +103,4 @@ frontend:
   # Set to < 0 to enable on all queries.
   # CLI flag: -frontend.log-queries-longer-than
   log_queries_longer_than: 20s
+

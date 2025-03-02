@@ -74,57 +74,57 @@ services:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
-  promtail:
-    image: grafana/promtail:3.4.2
-    container_name: promtail
-    ports:
-      - "127.0.0.1:1514:1514/tcp"
-      - "127.0.0.1:1514:1514/udp"
-      - "127.0.0.1:9080:9080"
-    volumes:
-      - ./promtail/log:/var/log
-      - ./promtail/conf:/etc/promtail
-      - /var/lib/docker/containers:/host/var/lib/docker/containers
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
-      - /var/log/php-fpm:/host/var/log/php-fpm
-      - /var/log/mariadb:/host/var/log/mariadb
-      - /var/log/journal:/host/var/log/journal
-      - /etc/machine-id:/etc/machine-id
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - loki
-    restart: always
-    logging:
-      options:
-        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+#  promtail:
+#    image: grafana/promtail:3.3.2
+#    container_name: promtail
+#    ports:
+#      - "127.0.0.1:1514:1514/tcp"
+#      - "127.0.0.1:1514:1514/udp"
+#      - "127.0.0.1:9080:9080"
+#    volumes:
+#      - ./promtail/log:/var/log
+#      - ./promtail/conf:/etc/promtail
+#      - /var/lib/docker/containers:/host/var/lib/docker/containers
+#      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
+#      - /var/log/php-fpm:/host/var/log/php-fpm
+#      - /var/log/mariadb:/host/var/log/mariadb
+#      - /var/log/journal:/host/var/log/journal
+#      - /etc/machine-id:/etc/machine-id
+#    command: -config.file=/etc/promtail/config.yml
+#    networks:
+#      - loki
+#    restart: always
+#    logging:
+#      options:
+#        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
-  promtail-remote:
-    image: grafana/promtail:3.4.2
-    container_name: promtail-remote
-    ports:
-      - "127.0.0.1:1515:1514/tcp"
-      - "127.0.0.1:1515:1514/udp"
-      - "127.0.0.1:9081:9080"
-    volumes:
-      - ./promtail-remote/log:/var/log
-      - ./promtail-remote/conf:/etc/promtail
-      - /var/lib/docker/containers:/host/var/lib/docker/containers
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
-      - /var/log/php-fpm:/host/var/log/php-fpm
-      - /var/log/mariadb:/host/var/log/mariadb
-      - /var/log/journal:/host/var/log/journal
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx-docker
-      - /etc/machine-id:/etc/machine-id
-    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
-    networks:
-      - loki
-    restart: always
-    environment:
-      - LOKI_ID=${LOKI_ID}
-      - LOKI_TOKEN=${LOKI_TOKEN}
-    logging:
-      options:
-        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+#  promtail-remote:
+#    image: grafana/promtail:3.3.2
+#    container_name: promtail-remote
+#    ports:
+#      - "127.0.0.1:1515:1514/tcp"
+#      - "127.0.0.1:1515:1514/udp"
+#      - "127.0.0.1:9081:9080"
+#    volumes:
+#      - ./promtail-remote/log:/var/log
+#      - ./promtail-remote/conf:/etc/promtail
+#      - /var/lib/docker/containers:/host/var/lib/docker/containers
+#      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
+#      - /var/log/php-fpm:/host/var/log/php-fpm
+#      - /var/log/mariadb:/host/var/log/mariadb
+#      - /var/log/journal:/host/var/log/journal
+#      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx-docker
+#      - /etc/machine-id:/etc/machine-id
+#    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
+#    networks:
+#      - loki
+#    restart: always
+#    environment:
+#      - LOKI_ID=${LOKI_ID}
+#      - LOKI_TOKEN=${LOKI_TOKEN}
+#    logging:
+#      options:
+#        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   grafana:
     image: grafana/grafana:11.5.2
@@ -142,6 +142,29 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_DOMAIN=grafana.debroglie.net
       - GF_SMTP_ENABLED=true
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  alloy:
+    container_name: grafana_alloy
+    volumes:
+      - ./alloy/conf:/etc/alloy
+      - /var/lib/docker/containers:/host/var/lib/docker/containers
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
+      - /var/log/php-fpm:/host/var/log/php-fpm
+      - /var/log/mariadb:/host/var/log/mariadb
+      - /var/log/journal:/host/var/log/journal
+    environment:
+      - LOKI_ID=${LOKI_ID}
+      - LOKI_TOKEN=${LOKI_TOKEN}
+    ports:
+      - 12345:12345
+    image: grafana/alloy:latest
+    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+    networks:
+      - loki
+    restart: always
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

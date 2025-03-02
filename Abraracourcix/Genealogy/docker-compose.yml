@@ -1,7 +1,7 @@
 services:
   genealogy:
     platform: linux/amd64
-    image: pascal22p/genealogy:latest
+    image: pascal22p/genealogy:latest-snapshot
     container_name: genealogy
     restart: unless-stopped
     environment:
