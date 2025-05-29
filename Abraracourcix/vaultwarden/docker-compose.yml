@@ -3,7 +3,7 @@ version: '3.8'
 services:
   vaultwarden:
     container_name: vaultwarden
-    image: vaultwarden/server:1.33.2
+    image: vaultwarden/server:1.34.1
     volumes:
       - ./data:/data             # where my persisted data already lives
       - ./etc:/etc/vaultwarden.d # the new scripts directory, mapped to /etc/vaultwarden.d
