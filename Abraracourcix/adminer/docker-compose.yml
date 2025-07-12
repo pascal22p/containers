@@ -14,3 +14,6 @@ services:
       ADMINER_PLUGINS: tables-filter tinymce
     #ports:
     #  - 127.0.0.1:9564:8080
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

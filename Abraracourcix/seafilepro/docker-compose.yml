@@ -1,7 +1,7 @@
 version: '3'
 services:
   seafile:
-    image: docker.seadrive.org/seafileltd/seafile-pro-mc:11.0.12
+    image: docker.seadrive.org/seafileltd/seafile-pro-mc:11.0.18
     container_name: seafile
     ports:
       - "127.0.0.1:8010:80"
@@ -20,3 +20,15 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - seafile-net
+
+  memcached:
+    image: memcached:1.6
+    container_name: memcached
+    restart: always
+    networks:
+      - seafile-net
+
+networks:
+  seafile-net:

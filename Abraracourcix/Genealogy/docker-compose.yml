@@ -11,8 +11,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       MEDIA_PATH: /tmp/Medias/
       PLAY_FILTERS_HOSTS: genealogie-new.parois.net
+      PROTOCOL: https://
     ports:
       - 127.0.0.1:9123:9123
     volumes:
       - ./Medias/:/tmp/Medias/
-
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

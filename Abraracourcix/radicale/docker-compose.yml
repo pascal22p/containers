@@ -28,5 +28,7 @@ services:
     volumes:
       - ./data/calendars:/data
       - ./data/config:/config:ro
-
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 

@@ -18,7 +18,12 @@ services:
       - ./gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
+      - /home/git/.ssh:/ssh
+
     ports:
       - "127.0.0.1:3003:3003"
-      - "127.0.0.1:222:22"
+      - "2222:2222"
 
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
