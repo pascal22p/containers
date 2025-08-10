@@ -7,8 +7,8 @@ services:
     image: grafana/carbon-relay-ng:1.5.5
     container_name: carbon-relay-ng
     volumes:
-      - ./carbon-relay/etc:/conf
-      - ./carbon-relay/log:/var/log
+      - ./carbon-relay/etc:/conf:Z
+      - ./carbon-relay/log:/var/log:Z
     ports:
       - "127.0.0.1:2103:2003"
       #- "127.0.0.1:3300:8081"
@@ -19,7 +19,7 @@ services:
       - TZ=Europe/London
       - GRAFANA_NET_USER_ID=${GRAFANA_NET_USER_ID}
       - GRAFANA_NET_API_KEY=${GRAFANA_NET_API_KEY}
-      - LOG_LEVEL=info
+      - LOG_LEVEL=warn
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
@@ -29,10 +29,10 @@ services:
     image: graphiteapp/graphite-statsd:1.1.10-5
 
     volumes:
-      - ./graphite/storage:/opt/graphite/storage
-      - ./graphite/conf:/opt/graphite/conf
-      - ./graphite/statsd:/opt/statsd/config
-      - ./graphite/log:/var/log
+      - ./graphite/storage:/opt/graphite/storage:Z
+      - ./graphite/conf:/opt/graphite/conf:Z
+      - ./graphite/statsd:/opt/statsd/config:Z
+      - ./graphite/log:/var/log:Z
     ports:
       - "127.0.0.1:7000:80"
       #- "127.0.0.1:2003-2014:2003-2004" # direct
@@ -62,9 +62,9 @@ services:
     networks:
       - loki
     volumes:
-      - ./loki/conf:/etc/loki
-      - loki-storage:/loki
-      - ./loki/rules:/etc/loki/rules
+      - ./loki/conf:/etc/loki:Z
+      - loki-storage:/loki:Z
+      - ./loki/rules:/etc/loki/rules:Z
     restart: always
     environment:
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
@@ -131,7 +131,7 @@ services:
     container_name: grafana
     restart: always
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - grafana-storage:/var/lib/grafana:Z
     ports:
       - "127.0.0.1:3000:3000"
     networks:
@@ -149,12 +149,12 @@ services:
   alloy:
     container_name: grafana_alloy
     volumes:
-      - ./alloy/conf:/etc/alloy
-      - /var/lib/docker/containers:/host/var/lib/docker/containers
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
-      - /var/log/php-fpm:/host/var/log/php-fpm
-      - /var/log/mariadb:/host/var/log/mariadb
-      - /var/log/journal:/host/var/log/journal
+      - ./alloy/conf:/etc/alloy:Z
+      - /var/lib/docker/containers:/host/var/lib/docker/containers:Z
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx:Z
+      - /var/log/php-fpm:/host/var/log/php-fpm:Z
+      - /var/log/mariadb:/host/var/log/mariadb:Z
+      - /var/log/journal:/host/var/log/journal:Z
     environment:
       - LOKI_ID=${LOKI_ID}
       - LOKI_TOKEN=${LOKI_TOKEN}

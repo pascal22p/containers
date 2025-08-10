@@ -26,8 +26,8 @@ services:
       retries: 3
     restart: unless-stopped
     volumes:
-      - ./data/calendars:/data
-      - ./data/config:/config:ro
+      - ./data/calendars:/data:Z
+      - ./data/config:/config:ro,Z
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

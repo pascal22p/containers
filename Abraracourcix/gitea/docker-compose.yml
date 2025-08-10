@@ -15,10 +15,10 @@ services:
     networks:
       - gitea
     volumes:
-      - ./gitea:/data
-      - /etc/timezone:/etc/timezone:ro
-      - /etc/localtime:/etc/localtime:ro
-      - /home/git/.ssh:/ssh
+      - ./gitea:/data:Z
+      - /etc/timezone:/etc/timezone:ro,Z
+      - /etc/localtime:/etc/localtime:ro,Z
+      - /home/git/.ssh:/ssh:Z
 
     ports:
       - "127.0.0.1:3003:3003"

@@ -10,12 +10,14 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       MEDIA_PATH: /tmp/Medias/
-      PLAY_FILTERS_HOSTS: genealogie-new.parois.net
+      EXTERNAL_ASSETS_PATH: /tmp/external-assets
+      PLAY_FILTERS_HOSTS: genealogie.parois.net
       PROTOCOL: https://
     ports:
       - 127.0.0.1:9123:9123
     volumes:
-      - ./Medias/:/tmp/Medias/
+      - ./Medias/:/tmp/Medias/:Z
+      - ./Assets/:/tmp/external-assets:Z
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

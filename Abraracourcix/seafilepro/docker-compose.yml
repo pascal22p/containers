@@ -7,8 +7,8 @@ services:
       - "127.0.0.1:8010:80"
 #     - "443:443"  # If https is enabled, cancel the comment.
     volumes:
-      - ./seafile-data:/shared   # Requested, specifies the path to Seafile data persistent store.
-      - ./etc/clamav/clamd.conf:/etc/clamav/clamd.conf
+      - ./seafile-data:/shared:Z   # Requested, specifies the path to Seafile data persistent store.
+      - ./etc/clamav/clamd.conf:/etc/clamav/clamd.conf:Z
     environment:
       - DB_HOST=db
       - DB_ROOT_PASSWD=db_dev  # Requested, the value shuold be root's password of MySQL service.

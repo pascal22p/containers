@@ -8,7 +8,7 @@ services:
     ports:
       - "127.0.0.1:9044:80"
     volumes:
-      - ./www:/var/www/html
+      - ./www:/var/www/html:Z
     environment:
       - ROUNDCUBEMAIL_DB_TYPE=mysql
       - ROUNDCUBEMAIL_DB_HOST=172.17.0.1 # same as pgsql container name

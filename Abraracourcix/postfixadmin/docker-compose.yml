@@ -10,7 +10,7 @@ services:
       - "127.0.0.1:9033:80"
     restart: always
     volumes:
-      - ./www:/var/www/html
+      - ./www:/var/www/html:Z
     environment:
       POSTFIXADMIN_DB_TYPE: mysqli
       POSTFIXADMIN_DB_HOST: 172.17.0.1
