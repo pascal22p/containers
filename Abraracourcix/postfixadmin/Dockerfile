@@ -1,4 +1,4 @@
-FROM postfixadmin:3.3.15-apache
+FROM postfixadmin:3.3.16-apache
 
 RUN apt-get update && apt-get install -y dovecot-core
 RUN rm /etc/dovecot/conf.d/10-ssl.conf
