@@ -4,7 +4,7 @@ networks:
 
 services:
   carbon-relay-ng:
-    image: grafana/carbon-relay-ng:1.5.9
+    image: grafana/carbon-relay-ng:1.5.12
     container_name: carbon-relay-ng
     volumes:
       - ./carbon-relay/etc:/conf:Z
