@@ -1,7 +1,7 @@
 services:
   zigbee2mqtt:
     container_name: zigbee2mqtt
-    image: koenkk/zigbee2mqtt:2.7.1
+    image: koenkk/zigbee2mqtt:2.8.0
     volumes: 
       - ./zigbee2mqtt/data:/app/data
       - /un/udev:/run/udev:ro
