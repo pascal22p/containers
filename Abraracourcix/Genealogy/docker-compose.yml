@@ -9,15 +9,24 @@ services:
       DB_URL: ${DB_URL}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      PYROSCOPE_AGENT_ENABLED: true
+      PYROSCOPE_APPLICATION_NAME: ${PYROSCOPE_NAME}
+      PYROSCOPE_PROFILER_ALLOC: 512k
+      PYROSCOPE_SERVER_ADDRESS: ${PYROSCOPE_SERVER_ADDRESS}
+      PYROSCOPE_BASIC_AUTH_USER: ${PYROSCOPE_BASIC_AUTH_USER}
+      PYROSCOPE_BASIC_AUTH_PASSWORD: ${PYROSCOPE_BASIC_AUTH_PASSWORD}
       MEDIA_PATH: /tmp/Medias/
+      UPLOAD_PATH: /tmp/Upload/
       EXTERNAL_ASSETS_PATH: /tmp/external-assets
       PLAY_FILTERS_HOSTS: genealogie.parois.net
       PROTOCOL: https://
+      APP_NAME: Parois.net
     ports:
       - 127.0.0.1:9123:9123
     volumes:
-      - ./Medias/:/tmp/Medias/:Z
-      - ./Assets/:/tmp/external-assets:Z
+      - ./Medias/:/tmp/Medias
+      - ./Assets/:/tmp/external-assets
+      - ./Upload/:/tmp/Upload
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
