@@ -1,0 +1,22 @@
+services:
+  nginx:
+    image: nginx:1.29.1-otel
+    container_name: nginx
+    restart: unless-stopped
+    tty: true
+    network_mode: "host"
+    volumes:
+      - ./conf/:/etc/nginx/:Z
+      - ./letsencrypt/:/etc/letsencrypt/:Z
+      - ./ssl/:/etc/ssl/:Z
+      - ./logs/:/var/log/nginx/:Z
+      - ./basic_auth/:/home/basic_auth/:Z
+      - /home/genealogie/genea4p:/home/genealogie/genea4p:Z
+      - /home/autoconfig/public_html/:/home/autoconfig/public_html/:Z
+      - /home/squere/public_html/:/home/squere/public_html/:Z
+      - /home/pascal/public_html/:/home/pascal/public_html/:Z
+
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
