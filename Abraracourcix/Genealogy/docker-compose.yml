@@ -21,12 +21,16 @@ services:
       PLAY_FILTERS_HOSTS: genealogie.parois.net
       PROTOCOL: https://
       APP_NAME: Parois.net
+      JAVA_OPTS: "-Dlogger.file=/opt/logback.xml"
     ports:
       - 127.0.0.1:9123:9123
     volumes:
       - ./Medias/:/tmp/Medias
       - ./Assets/:/tmp/external-assets
       - ./Upload/:/tmp/Upload
+      - ./Config/logback.xml:/opt/logback.xml:ro
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        max-size: "50m"
+        max-file: "3"

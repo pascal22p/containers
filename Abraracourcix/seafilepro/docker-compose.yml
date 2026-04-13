@@ -1,7 +1,7 @@
 version: '3'
 services:
   seafile:
-    image: docker.seadrive.org/seafileltd/seafile-pro-mc:11.0.18
+    image: docker.seadrive.org/seafileltd/seafile-pro-mc:11.0-latest
     container_name: seafile
     ports:
       - "127.0.0.1:8010:80"
@@ -9,11 +9,20 @@ services:
     volumes:
       - ./seafile-data:/shared:Z   # Requested, specifies the path to Seafile data persistent store.
       - ./etc/clamav/clamd.conf:/etc/clamav/clamd.conf:Z
+    depends_on:
+      - redis
     environment:
+      - CACHE_PROVIDER=redis
+      - SEAFILE_REDIS_HOST=redis
+      - SEAFILE_REDIS_PORT=6379
       - DB_HOST=db
       - DB_ROOT_PASSWD=db_dev  # Requested, the value shuold be root's password of MySQL service.
       - SEAFILE_SERVER_LETSENCRYPT=false   # Whether to use https or not
       - SEAFILE_SERVER_HOSTNAME=seafile.parois.net # Specifies your host name if https is enabled
+      - SEAFILE_LOG_TO_STDOUT=true
+      - SEAHUB_LOG_TO_STDOUT=true
+      - SEAFILE_LOG_LEVEL=DEBUG
+      - SEAHUB_LOG_LEVEL=DEBUG
     restart: always
     logging:
       options:
@@ -23,12 +32,41 @@ services:
     networks:
       - seafile-net
 
-  memcached:
-    image: memcached:1.6
-    container_name: memcached
-    restart: always
+  #memcached:
+  #  image: memcached:1.6
+  #  container_name: memcached
+  #  restart: always
+  #  networks:
+  #    - seafile-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: seafile-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+      --maxmemory 1024mb
+      --maxmemory-policy allkeys-lru
+      --io-threads 4
+      --io-threads-do-reads yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"  # Only bind to localhost
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+        reservations:
+          memory: 256M
     networks:
       - seafile-net
+
+volumes:
+  redis_data:
+    driver: local
 
 networks:
   seafile-net:

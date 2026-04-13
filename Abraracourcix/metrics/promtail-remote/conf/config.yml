@@ -21,7 +21,7 @@ scrape_configs:
     path: /host/var/log/journal
     labels:
       job: systemd-journal
-      host: "abraracourcix.debroglie.net"
+      host: "idefix.debroglie.net"
   relabel_configs:
   - source_labels: ['__journal__systemd_unit']
     target_label: 'unit'
@@ -41,10 +41,10 @@ scrape_configs:
 - job_name: nginx-stream
   static_configs:
   - targets:
-      - abraracourcix.debroglie.net
+      - idefix.debroglie.net
     labels:
       job: nginx-stream
-      host: "abraracourcix.debroglie.net"
+      host: "idefix.debroglie.net"
       __path__: /host/var/log/nginx-docker/stream_*log
   pipeline_stages:
   - regex:
@@ -60,10 +60,10 @@ scrape_configs:
 - job_name: nginx
   static_configs:
   - targets:
-      - abraracourcix.debroglie.net
+      - idefix.debroglie.net
     labels:
       job: nginx
-      host: abraracourcix.debroglie.net
+      host: idefix.debroglie.net
       __path__: /host/var/log/nginx/*log
       __path_exclude__: /host/var/log/nginx/stream_*log
   pipeline_stages:
@@ -79,7 +79,7 @@ scrape_configs:
       - localhost
     labels:
       job: dockerlogs
-      host: abraracourcix.debroglie.net
+      host: idefix.debroglie.net
       __path__: /host/var/lib/docker/containers/*/*log
   pipeline_stages:
   - json:
@@ -110,10 +110,10 @@ scrape_configs:
 - job_name: php-fpm
   static_configs:
   - targets:
-      - abraracourcix.debroglie.net
+      - idefix.debroglie.net
     labels:
       job: php-fpm
-      host: abraracourcix.debroglie.net
+      host: idefix.debroglie.net
       __path__: /host/var/log/php-fpm/*error.log
   pipeline_stages:
   - multiline:
@@ -127,8 +127,8 @@ scrape_configs:
 - job_name: mariadb
   static_configs:
   - targets:
-      - abraracourcix.debroglie.net
+      - idefix.debroglie.net
     labels:
       job: mariadb
-      host: abraracourcix.debroglie.net
+      host: idefix.debroglie.net
       __path__: /host/var/log/mariadb/mariadb.log
