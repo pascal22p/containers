@@ -58,7 +58,7 @@ loki.process "nginx_stream" {
 	forward_to = [loki.write.default.receiver, loki.write.remote.receiver]
 
 	stage.regex {
-		expression = "^(?P<ip>[^ ]+) \\[(?P<timestamp>.+)\\] (?P<protocol>[^ ]+) (?P<status>[0-9]+) (?P<bytesent>[0-9]+) (?P<bytereceived>[0-9]+) (?P<sessiontime>[0-9.]+) verify=(?P<verify>[^ ]+) backend=(?P<backend>.+)"
+		expression = "^(?P<ip>[^ ]+) \\[(?P<timestamp>.+)\\] (?P<protocol>[^ ]+) (?P<status>[0-9]+) (?P<bytesent>[0-9]+) (?P<bytereceived>[0-9]+) (?P<sessiontime>[0-9.]+)(?: verify=(?P<verify>[^ ]+))?(?: backend=(?P<backend>.+))?"
 	}
 
 	stage.labels {
