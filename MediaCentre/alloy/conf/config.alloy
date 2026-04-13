@@ -1,0 +1,249 @@
+loki.write "loki" {
+  endpoint {
+    url = "https://loki.debroglie.net/api/prom/push"
+
+    basic_auth {
+      username = sys.env("LOKI_IDEFIX_USER")
+      password = sys.env("LOKI_IDEFIX_TOKEN")
+    }
+  }
+}
+
+loki.write "remote" {
+       endpoint {
+               url = "https://logs-prod-008.grafana.net/api/prom/push"
+
+               basic_auth {
+                       username = sys.env("LOKI_ID")
+                       password = sys.env("LOKI_TOKEN")
+                }
+        }
+        external_labels = {}
+}
+
+
+loki.process "journal" {
+        forward_to = [loki.write.loki.receiver, loki.write.remote.receiver]
+
+        stage.template {
+                source   = "level"
+                template = "{{ if eq .Value \"0\" }}{{ Replace .Value \"0\" \"emerg\" 1 }}{{ else if eq .Value \"1\" }}{{ Replace .Value \"1\" \"alert\" 1 }}{{ else if eq .Value \"2\" }}{{ Replace .Value \"2\" \"crit\" 1 }}{{ else if eq .Value \"3\" }}{{ Replace .Value \"3\" \"err\" 1 }}{{ else if eq .Value \"4\" }}{{ Replace .Value \"4\" \"warning\" 1 }}{{ else if eq .Value \"5\" }}{{ Replace .Value \"5\" \"notice\" 1 }}{{ else if eq .Value \"6\" }}{{ Replace .Value \"6\" \"info\" 1 }}{{ else if eq .Value \"7\" }}{{ Replace .Value \"7\" \"debug\" 1 }}{{ end }}"
+        }
+
+        stage.labels {
+                values = {
+                        level = null,
+                }
+        }
+}
+discovery.relabel "journal" {
+        targets = []
+
+        rule {
+                source_labels = ["__journal__systemd_unit"]
+                regex         = "session-[0-9]+\\.scope"
+                target_label  = "unit"
+                replacement   = "session"
+        }
+
+        rule {
+                source_labels = ["__journal_syslog_identifier"]
+                target_label  = "syslog_identifier"
+        }
+
+        rule {
+                source_labels = ["__journal_priority"]
+                target_label  = "level"
+        }
+}
+
+loki.source.journal "journal" {
+        format_as_json = true
+        path           = "/host/var/log/journal"
+        relabel_rules  = discovery.relabel.journal.rules
+        forward_to     = [loki.process.journal.receiver]
+        labels         = {
+                host = "mediacentre",
+                job  = "systemd-journal",
+        }
+}
+
+local.file_match "docker" {
+	path_targets = [{
+		__address__ = "localhost",
+		__path__    = "/host/var/lib/docker/containers/*/*log",
+		host        = "mediacentre",
+		job         = "dockerlogs",
+	}]
+}
+
+loki.process "docker" {
+	forward_to = [loki.write.loki.receiver, loki.write.remote.receiver]
+
+	stage.json {
+		expressions = {
+			attrs  = "",
+			output = "log",
+			stream = "stream",
+		}
+	}
+
+	stage.json {
+		expressions = {
+			tag = "",
+		}
+		source = "attrs"
+	}
+
+	stage.regex {
+		expression = "(?P<image_name>(?:[^|]*[^|])).(?P<container_name>(?:[^|]*[^|])).(?P<image_id>(?:[^|]*[^|])).(?P<container_id>(?:[^|]*[^|]))"
+		source     = "tag"
+	}
+
+	stage.drop {
+		expression = ".*\\[listener\\] MetricLineReceiver connection with.*"
+		source     = "output"
+	}
+
+	stage.timestamp {
+		source = "time"
+		format = "RFC3339Nano"
+	}
+
+	stage.labels {
+		values = {
+			container_id   = null,
+			container_name = null,
+			image_id       = null,
+			image_name     = null,
+			stream         = null,
+			tag            = null,
+		}
+	}
+
+        // Parse JSON output from containers that emit it (e.g. genealogy/logstash encoder)
+	stage.match {
+		selector = "{container_name=\"genealogy\"}"
+
+		stage.json {
+			expressions = {
+				level       = "level",
+				logger      = "logger_name",
+				stack_trace = "stack_trace",
+				message     = "message",
+			}
+			source = "output"
+		}
+
+		stage.labels {
+			values = {
+				level  = null,
+				logger = null,
+			}
+		}
+
+		stage.static_labels {
+                        values = {
+			        app = "genealogy",
+                        }
+                }
+
+		stage.output {
+			source = "message"
+		}
+	}
+
+        stage.output {
+                source = "output"
+        }
+
+}
+
+loki.source.file "docker" {
+	targets               = local.file_match.docker.targets
+	forward_to            = [loki.process.docker.receiver]
+	legacy_positions_file = "/tmp/positions.yaml"
+}
+
+
+local.file_match "nginx_stream" {
+	path_targets = [{
+		__address__ = "idefix.debroglie.net",
+		__path__    = "/host/var/log/nginx/stream_*log",
+		host        = "mediacentre",
+		job         = "nginx-stream",
+	}]
+}
+
+loki.process "nginx_stream" {
+	forward_to = [loki.write.loki.receiver, loki.write.remote.receiver]
+
+	stage.regex {
+		expression = "^(?P<ip>[^ ]+) \\[(?P<timestamp>.+)\\] (?P<protocol>[^ ]+) (?P<status>[0-9]+) (?P<bytesent>[0-9]+) (?P<bytereceived>[0-9]+) (?P<sessiontime>[0-9.]+) verify=(?P<verify>[^ ]+) backend=(?P<backend>.+)"
+	}
+
+	stage.labels {
+		values = {
+			ip       = null,
+			protocol = null,
+			status   = null,
+                        verify   = null,
+			backend  = null,
+		}
+	}
+
+	stage.timestamp {
+		source = "timestamp"
+		format = "29/May/2022:18:04:00 +0000"
+	}
+}
+
+loki.source.file "nginx_stream" {
+	targets               = local.file_match.nginx_stream.targets
+	forward_to            = [loki.process.nginx_stream.receiver]
+	legacy_positions_file = "/tmp/positions.yaml"
+}
+
+
+local.file_match "nginx" {
+        path_targets = [{
+                __address__      = "mediacentre",
+                __path__         = "/host/var/log/nginx/*log",
+                __path_exclude__ = "/host/var/log/nginx/stream_*log",
+                host             = "mediacentre",
+                job       	 = "nginx",
+        }]
+}
+
+loki.process "nginx" {
+        forward_to = [loki.write.loki.receiver, loki.write.remote.receiver]
+
+        stage.json {
+                expressions = {
+                        http_host = "http_host",
+                }
+        }
+
+        stage.labels {
+                values = {
+                        http_host = null,
+                }
+        }
+
+    stage.match {
+        selector = "{http_host=\"genealogie.parois.net\"}"
+
+        stage.static_labels {
+            values = {
+                app = "genealogy",
+            }
+        }
+    }
+}
+
+loki.source.file "nginx" {
+        targets               = local.file_match.nginx.targets
+        forward_to            = [loki.process.nginx.receiver]
+        legacy_positions_file = "/tmp/positions.yaml"
+}
+

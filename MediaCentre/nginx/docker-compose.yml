@@ -13,4 +13,6 @@ services:
       - ./ssl/:/etc/ssl/
       - ./logs/:/var/log/nginx/
       - ./client_certs:/etc/nginx/client_certs
-
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
