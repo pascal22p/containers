@@ -16,7 +16,7 @@ services:
       - LOKI_IDEFIX_TOKEN=${LOKI_IDEFIX_TOKEN}
     ports:
       - 12345:12345
-    image: grafana/alloy:v1.15.0
+    image: grafana/alloy:v1.16.0
     command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
       - loki
