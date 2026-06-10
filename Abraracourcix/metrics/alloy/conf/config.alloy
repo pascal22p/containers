@@ -1,5 +1,5 @@
 loki.process "journal" {
-	forward_to = [loki.write.default.receiver, loki.write.remote.receiver]
+	forward_to = [loki.write.default.receiver, loki.process.journal_remote.receiver]
 
 	stage.template {
 		source   = "level"
@@ -11,6 +11,16 @@ loki.process "journal" {
 			level = null,
 		}
 	}
+}
+
+loki.process "journal_remote" {
+  forward_to = [loki.write.remote.receiver]
+
+  // Drop info/notice logs EXCEPT dovecot delivery confirmations
+  stage.match {
+    selector = "{detected_level=~\"info|notice\"} != \"status=sent (delivered via dovecot service)\""
+    action   = "drop"
+  }
 }
 
 discovery.relabel "journal" {
@@ -80,7 +90,7 @@ loki.process "nginx_stream" {
 loki.source.file "nginx_stream" {
 	targets               = local.file_match.nginx_stream.targets
 	forward_to            = [loki.process.nginx_stream.receiver]
-	legacy_positions_file = "/tmp/positions.yaml"
+	// legacy_positions_file = "/tmp/positions.yaml"
 }
 
 local.file_match "nginx" {
@@ -117,12 +127,22 @@ loki.process "nginx" {
             }
         }
     }
+
+    stage.match {
+       selector = "{http_host=\"uk-fuel-prices.parois.net\"}"
+
+       stage.static_labels {
+            values = {
+               app = "ukfuelprices",
+            }
+       }
+    }
 }
 
 loki.source.file "nginx" {
 	targets               = local.file_match.nginx.targets
 	forward_to            = [loki.process.nginx.receiver]
-	legacy_positions_file = "/tmp/positions.yaml"
+	// legacy_positions_file = "/tmp/positions.yaml"
 }
 
 local.file_match "docker" {
@@ -169,12 +189,9 @@ loki.process "docker" {
 
 	stage.labels {
 		values = {
-			container_id   = null,
 			container_name = null,
-			image_id       = null,
 			image_name     = null,
 			stream         = null,
-			tag            = null,
 		}
 	}
 
@@ -210,6 +227,37 @@ loki.process "docker" {
 		}
 	}
 
+        stage.match {
+               	selector = "{container_name=\"ukfuelprices\"}"
+
+               	stage.json {
+                       	expressions = {
+                               	level       = "level",
+                               	logger      = "logger_name",
+                               	stack_trace = "stack_trace",
+                               	message     = "message",
+                       }
+                       source = "output"
+               }
+
+               stage.labels {
+                       values = {
+                               level  = null,
+                               logger = null,
+                       }
+               }
+
+               stage.static_labels {
+                        values = {
+                      	       app = "ukfuelprices",
+                        }
+                }
+
+               stage.output {
+                       source = "message"
+               }
+      }
+
         stage.output {
                 source = "output"
         }
@@ -219,7 +267,7 @@ loki.process "docker" {
 loki.source.file "docker" {
 	targets               = local.file_match.docker.targets
 	forward_to            = [loki.process.docker.receiver]
-	legacy_positions_file = "/tmp/positions.yaml"
+	// legacy_positions_file = "/tmp/positions.yaml"
 }
 
 local.file_match "php_fpm" {
@@ -236,7 +284,7 @@ loki.process "php_fpm" {
 
 	stage.multiline {
 		firstline = "^\\[[0-9]+-[a-zA-Z]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+ [^ ]+\\]"
-		max_lines = 0
+		  max_lines = 128    // add a reasonable cap
 	}
 
 	stage.regex {
@@ -247,7 +295,7 @@ loki.process "php_fpm" {
 loki.source.file "php_fpm" {
 	targets               = local.file_match.php_fpm.targets
 	forward_to            = [loki.process.php_fpm.receiver]
-	legacy_positions_file = "/tmp/positions.yaml"
+	// legacy_positions_file = "/tmp/positions.yaml"
 }
 
 local.file_match "mariadb_audit" {
@@ -279,7 +327,7 @@ loki.process "mariadb_audit" {
 loki.source.file "mariadb_audit" {
 	targets               = local.file_match.mariadb_audit.targets
 	forward_to            = [loki.process.mariadb_audit.receiver]
-	legacy_positions_file = "/tmp/positions.yaml"
+	// legacy_positions_file = "/tmp/positions.yaml"
 }
 
 local.file_match "mariadb" {
@@ -294,7 +342,7 @@ local.file_match "mariadb" {
 loki.source.file "mariadb" {
 	targets               = local.file_match.mariadb.targets
 	forward_to            = [loki.write.default.receiver]
-	legacy_positions_file = "/tmp/positions.yaml"
+	// legacy_positions_file = "/tmp/positions.yaml"
 }
 
 loki.write "default" {
