@@ -10,7 +10,7 @@ services:
       - ./carbon-relay/etc:/conf:Z
       - ./carbon-relay/log:/var/log:Z
     ports:
-      - "127.0.0.1:2103:2003"
+      - "127.0.0.1:2003:2003"
       #- "127.0.0.1:3300:8081"
     networks:
       - loki
@@ -19,7 +19,7 @@ services:
       - TZ=Europe/London
       - GRAFANA_NET_USER_ID=${GRAFANA_NET_USER_ID}
       - GRAFANA_NET_API_KEY=${GRAFANA_NET_API_KEY}
-      - LOG_LEVEL=warn
+      - LOG_LEVEL=info
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
@@ -36,7 +36,7 @@ services:
     ports:
       - "127.0.0.1:7000:80"
       #- "127.0.0.1:2003-2014:2003-2004" # direct
-      - "127.0.0.1:2003-2004:2013-2014" # carbon-relay
+      - "127.0.0.1:2013:2003" # carbon-relay
       - "127.0.0.1:2023-2024:2023-2024"
       - "127.0.0.1:8125:8125/udp"
       - "127.0.0.1:8126:8126"
@@ -46,9 +46,9 @@ services:
     environment:
       - TZ=Europe/London
       - GOCARBON=1
-      - RELAY=1
+      - RELAY=0
       - GRAPHITE_WSGI_REQUEST_TIMEOUT=120
-      - GRAPHITE_WSGI_THREADS=1
+      - GRAPHITE_WSGI_THREADS=4
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}" 
