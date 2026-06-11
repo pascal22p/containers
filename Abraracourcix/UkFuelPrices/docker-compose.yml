@@ -1,8 +1,8 @@
 services:
-  genealogy:
+  ukfuelprices:
     platform: linux/amd64
-    image: pascal22p/genealogy:latest-snapshot
-    container_name: genealogy
+    image: pascal22p/uk-fuel-prices:latest-snapshot
+    container_name: ukfuelprices
     restart: unless-stopped
     environment:
       APP_SECRET: ${APP_SECRET}
@@ -20,11 +20,8 @@ services:
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
       OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
       OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS}
-      OTEL_SERVICE_NAME: genealogy
-      MEDIA_PATH: /tmp/Medias/
-      UPLOAD_PATH: /tmp/Upload/
-      EXTERNAL_ASSETS_PATH: /tmp/external-assets
-      PLAY_FILTERS_HOSTS: genealogie.parois.net
+      OTEL_SERVICE_NAME: ukfuelprices
+      PLAY_FILTERS_HOSTS: uk-fuel-prices.parois.net
       PROTOCOL: https://
       APP_NAME: Parois.net
       JAVA_OPTS: >-
@@ -37,12 +34,18 @@ services:
         -Dotel.bsp.max.queue.size=4096
         -Dotel.bsp.max.export.batch.size=1024
         -Dotel.bsp.schedule.delay=1000
+      PARTIAL_UPDATE_IS_ENABLED: true
+      PARTIAL_UPDATE_JOB_INTERVAL_IN_MINUTES: 5
+      PARTIAL_UPDATE_SCHEDULER_INTERVAL_IN_MINUTES: 1
+      PARTIAL_UPDATE_START_DELAY_IN_SECONDS: 10
+      FUEL_CLIENT_ID: ${FUEL_CLIENT_ID}
+      FUEL_CLIENT_SECRET: ${FUEL_CLIENT_SECRET}
+      FUEL_HOST: "172.17.0.1"
+      FUEL_PORT: 9235
+      FUEL_PROTOCOL: http
     ports:
-      - 127.0.0.1:9123:9123
+      - 127.0.0.1:9234:9234
     volumes:
-      - ./Medias/:/tmp/Medias
-      - ./Assets/:/tmp/external-assets
-      - ./Upload/:/tmp/Upload
       - ./Config/logback.xml:/opt/logback.xml:ro
       - ./otel/grafana-opentelemetry-java.jar:/opt/grafana-opentelemetry-java.jar:ro
       - ./otel/pyroscope-otel-javaagent-extension.jar:/opt/pyroscope-otel-javaagent-extension.jar:ro
@@ -51,3 +54,4 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
         max-size: "50m"
         max-file: "3"
+
