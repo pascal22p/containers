@@ -368,3 +368,77 @@ loki.write "remote" {
         }
 	external_labels = {}
 }
+
+// relaying promotheus metrics
+prometheus.receive_http "in" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 9009
+  }
+
+  forward_to = [prometheus.remote_write.to_grafana_cloud.receiver, prometheus.remote_write.to_mimir.receiver]
+}
+
+prometheus.remote_write "to_grafana_cloud" {
+  endpoint {
+    url = "https://prometheus-prod-05-gb-south-0.grafana.net/api/prom/push"
+
+    basic_auth {
+      username = sys.env("PROM_ID")
+      password = sys.env("PROM_TOKEN")
+    }
+  }
+}
+
+prometheus.remote_write "to_mimir" {
+  endpoint {
+    url = "http://mimir:9001/api/v1/push"
+  }
+
+  external_labels = {
+    cluster = "local-federation",
+    host    = "idefix",
+  }
+}
+
+// cadvisor docker metrics
+prometheus.scrape "cadvisor" {
+  targets = [
+    { 
+      "__address__" = "cadvisor:8080", 
+    },
+  ]
+
+  metrics_path = "/metrics"
+  scrape_interval = "15s"
+
+  forward_to = [prometheus.remote_write.to_grafana_cloud.receiver, prometheus.remote_write.to_mimir.receiver]
+}
+
+// Relaying otel metrics
+otelcol.receiver.otlp "in" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    metrics = [otelcol.exporter.otlphttp.out.input]
+  }
+}
+
+otelcol.auth.basic "creds" {
+  username = sys.env("OTEL_ID")
+  password = sys.env("OTEL_TOKEN")
+}
+
+otelcol.exporter.otlphttp "out" {
+  client {
+    endpoint = "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
+    auth     = otelcol.auth.basic.creds.handler
+  }
+}
+

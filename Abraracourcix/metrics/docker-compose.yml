@@ -106,10 +106,17 @@ services:
     environment:
       - LOKI_ID=${LOKI_ID}
       - LOKI_TOKEN=${LOKI_TOKEN}
+      - PROM_ID=${PROM_ID}
+      - PROM_TOKEN=${PROM_TOKEN}
+      - OTEL_ID=${OTEL_ID}
+      - OTEL_TOKEN=${OTEL_TOKEN}
     ports:
-      - 12345:12345
+      - "127.0.0.1:9999:9999"
+      - "127.0.0.1:9009:9009"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:4317:4317"
     image: grafana/alloy:v1.16.3
-    command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+    command: 'run --server.http.listen-addr=0.0.0.0:9999 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
       - loki
     restart: always
@@ -117,6 +124,60 @@ services:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
+#  prometheus:
+#    image: prom/prometheus:v3.5.0
+#    container_name: prometheus
+#    restart: always
+#    networks:
+#      - loki
+#    ports:
+ #     - "127.0.0.1:9090:9090"
+#    volumes:
+#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+#      - ./prometheus/data:/prometheus
+#    command:
+#      - '--config.file=/etc/prometheus/prometheus.yml'
+#      - '--storage.tsdb.path=/prometheus'
+#    logging:
+#      options:
+#        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  mimir:
+    image: grafana/mimir:2.13.0
+    container_name: mimir
+    command:
+      - -config.file=/etc/mimir/mimir.yaml
+    volumes:
+      - ./mimir/mimir.yaml:/etc/mimir/mimir.yaml
+      - ./mimir/data/:/data
+    ports:
+      - "127.0.0.1:9001:9001"
+    networks:
+      - loki
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: cadvisor
+    networks:
+      - loki
+
+    privileged: true
+
+    ports:
+      - "127.0.0.1:8085:8080"
+
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+    restart: unless-stopped
 volumes:
   grafana-storage:
     name: grafana-storage
