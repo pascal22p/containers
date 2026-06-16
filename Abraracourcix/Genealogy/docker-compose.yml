@@ -4,6 +4,8 @@ services:
     image: pascal22p/genealogy:latest-snapshot
     container_name: genealogy
     restart: unless-stopped
+    networks:
+      - dockernet
     environment:
       APP_SECRET: ${APP_SECRET}
       DB_URL: ${DB_URL}
@@ -18,12 +20,15 @@ services:
       PYROSCOPE_TRACE_PROFILING_ENABLED: true
       OTEL_RESOURCE_ATTRIBUTES: "service.name=genealogy,deployment.environment=prod"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
-      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS}
+      #OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
+      #OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS}
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana_alloy:4318"
+      OTEL_LOGS_EXPORTER: none
       OTEL_SERVICE_NAME: genealogy
       MEDIA_PATH: /tmp/Medias/
       UPLOAD_PATH: /tmp/Upload/
       EXTERNAL_ASSETS_PATH: /tmp/external-assets
+      CUSTOM_JS_FILE: "javascript/faro.js"
       PLAY_FILTERS_HOSTS: genealogie.parois.net
       PROTOCOL: https://
       APP_NAME: Parois.net
@@ -51,3 +56,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
         max-size: "50m"
         max-file: "3"
+
+networks:
+  dockernet:
+    external: true

@@ -4,6 +4,8 @@ services:
     image: pascal22p/uk-fuel-prices:latest-snapshot
     container_name: ukfuelprices
     restart: unless-stopped
+    networks:
+      - dockernet
     environment:
       APP_SECRET: ${APP_SECRET}
       DB_URL: ${DB_URL}
@@ -16,10 +18,12 @@ services:
       PYROSCOPE_BASIC_AUTH_USER: ${PYROSCOPE_BASIC_AUTH_USER}
       PYROSCOPE_BASIC_AUTH_PASSWORD: ${PYROSCOPE_BASIC_AUTH_PASSWORD}
       PYROSCOPE_TRACE_PROFILING_ENABLED: true
-      OTEL_RESOURCE_ATTRIBUTES: "service.name=genealogy,deployment.environment=prod"
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=ukfuelprices,deployment.environment=prod"
       OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
-      OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS}
+      #OTEL_EXPORTER_OTLP_ENDPOINT: "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
+      #OTEL_EXPORTER_OTLP_HEADERS: ${OTEL_EXPORTER_OTLP_HEADERS}
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana_alloy:4318"
+      OTEL_LOGS_EXPORTER: none
       OTEL_SERVICE_NAME: ukfuelprices
       PLAY_FILTERS_HOSTS: uk-fuel-prices.parois.net
       PROTOCOL: https://
@@ -34,6 +38,9 @@ services:
         -Dotel.bsp.max.queue.size=4096
         -Dotel.bsp.max.export.batch.size=1024
         -Dotel.bsp.schedule.delay=1000
+        -Dotel.instrumentation.http-server.enabled=true
+        -Dotel.instrumentation.netty.enabled=true
+        -Dotel.instrumentation.ahc.enabled=false
       PARTIAL_UPDATE_IS_ENABLED: true
       PARTIAL_UPDATE_JOB_INTERVAL_IN_MINUTES: 5
       PARTIAL_UPDATE_SCHEDULER_INTERVAL_IN_MINUTES: 1
@@ -55,3 +62,6 @@ services:
         max-size: "50m"
         max-file: "3"
 
+networks:
+  dockernet:
+    external: true

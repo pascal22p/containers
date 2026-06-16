@@ -1,7 +1,4 @@
 
-networks:
-  loki:
-
 services:
   carbon-relay-ng:
     image: grafana/carbon-relay-ng:1.5.17
@@ -13,7 +10,7 @@ services:
       - "127.0.0.1:2003:2003"
       #- "127.0.0.1:3300:8081"
     networks:
-      - loki
+      - dockernet
     restart: always
     environment:
       - TZ=Europe/London
@@ -41,7 +38,7 @@ services:
       - "127.0.0.1:8125:8125/udp"
       - "127.0.0.1:8126:8126"
     networks:
-      - loki
+      - dockernet
     restart: always
     environment:
       - TZ=Europe/London
@@ -60,7 +57,7 @@ services:
       - "127.0.0.1:3100:3100"
     command: -config.file=/etc/loki/loki-config.yml -config.expand-env=true
     networks:
-      - loki
+      - dockernet
     volumes:
       - ./loki/conf:/etc/loki:Z
       - loki-storage:/loki:Z
@@ -83,7 +80,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     networks:
-      - loki
+      - dockernet
     environment:
       - GF_LOG_LEVEL=debug
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
@@ -118,7 +115,7 @@ services:
     image: grafana/alloy:v1.17.0
     command: 'run --server.http.listen-addr=0.0.0.0:9999 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
-      - loki
+      - dockernet
     restart: always
     logging:
       options:
@@ -153,7 +150,7 @@ services:
     ports:
       - "127.0.0.1:9001:9001"
     networks:
-      - loki
+      - dockernet
     restart: always
     logging:
       options:
@@ -163,25 +160,48 @@ services:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
     container_name: cadvisor
     networks:
-      - loki
-
+      - dockernet
     privileged: true
-
     ports:
       - "127.0.0.1:8085:8080"
-
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /sys/fs/cgroup:/sys/fs/cgroup:ro
       - /var/lib/docker/:/var/lib/docker:ro
-
     restart: unless-stopped
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  tempo:
+    image: grafana/tempo:2.8.2
+    container_name: tempo
+    command: [ "-config.file=/etc/tempo/tempo.yaml" ]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:Z
+      - tempo-storage:/var/tempo:Z
+    ports:
+      - "127.0.0.1:3200:3200"   # Tempo API
+    networks:
+      - dockernet
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
 volumes:
   grafana-storage:
     name: grafana-storage
     external: true
   loki-storage:
     name: loki-storage
+    external: true
+  tempo-storage:
+    name: tempo-storage
+    external: true
+
+networks:
+  dockernet:
     external: true

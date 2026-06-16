@@ -369,15 +369,41 @@ loki.write "remote" {
 	external_labels = {}
 }
 
-// relaying promotheus metrics
+// =====================
+// PROMETHEUS METRICS (SCRAPE + PUSH)
+// =====================
+
 prometheus.receive_http "in" {
   http {
     listen_address = "0.0.0.0"
     listen_port    = 9009
   }
 
-  forward_to = [prometheus.remote_write.to_grafana_cloud.receiver, prometheus.remote_write.to_mimir.receiver]
+  forward_to = [
+    prometheus.remote_write.to_grafana_cloud.receiver,
+    prometheus.remote_write.to_mimir.receiver,
+  ]
 }
+
+// cadvisor scrape
+prometheus.scrape "cadvisor" {
+  targets = [
+    { "__address__" = "cadvisor:8080" },
+  ]
+
+  metrics_path    = "/metrics"
+  scrape_interval = "15s"
+
+  forward_to = [
+    prometheus.remote_write.to_grafana_cloud.receiver,
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+
+// =====================
+// REMOTE WRITE BACKENDS
+// =====================
 
 prometheus.remote_write "to_grafana_cloud" {
   endpoint {
@@ -401,21 +427,11 @@ prometheus.remote_write "to_mimir" {
   }
 }
 
-// cadvisor docker metrics
-prometheus.scrape "cadvisor" {
-  targets = [
-    { 
-      "__address__" = "cadvisor:8080", 
-    },
-  ]
 
-  metrics_path = "/metrics"
-  scrape_interval = "15s"
+// =====================
+// OTEL (METRICS + TRACES)
+// =====================
 
-  forward_to = [prometheus.remote_write.to_grafana_cloud.receiver, prometheus.remote_write.to_mimir.receiver]
-}
-
-// Relaying otel metrics
 otelcol.receiver.otlp "in" {
   http {
     endpoint = "0.0.0.0:4318"
@@ -426,9 +442,35 @@ otelcol.receiver.otlp "in" {
   }
 
   output {
-    metrics = [otelcol.exporter.otlphttp.out.input]
+    metrics = [
+      otelcol.processor.batch.otel_metrics.input,
+    ]
+
+    traces = [
+      otelcol.exporter.otlphttp.out.input,
+      otelcol.exporter.otlphttp.tempo_local.input,
+    ]
   }
 }
+
+otelcol.exporter.prometheus "to_prometheus" {
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+    prometheus.remote_write.to_grafana_cloud.receiver,
+  ]
+}
+
+otelcol.processor.batch "otel_metrics" {
+  output {
+    metrics = [
+      otelcol.exporter.prometheus.to_prometheus.input,
+    ]
+  }
+}
+
+// =====================
+// OTEL EXPORTERS (TRACES)
+// =====================
 
 otelcol.auth.basic "creds" {
   username = sys.env("OTEL_ID")
@@ -439,6 +481,12 @@ otelcol.exporter.otlphttp "out" {
   client {
     endpoint = "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
     auth     = otelcol.auth.basic.creds.handler
+  }
+}
+
+otelcol.exporter.otlphttp "tempo_local" {
+  client {
+    endpoint = "http://tempo:4318"
   }
 }
 
