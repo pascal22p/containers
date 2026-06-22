@@ -176,7 +176,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   tempo:
-    image: grafana/tempo:2.8.2
+    image: grafana/tempo:2.10.7
     container_name: tempo
     command: [ "-config.file=/etc/tempo/tempo.yaml" ]
     volumes:
