@@ -95,6 +95,7 @@ services:
     container_name: grafana_alloy
     volumes:
       - ./alloy/conf:/etc/alloy:Z
+      - ./alloy/data:/var/lib/alloy/data:Z
       - /var/lib/docker/containers:/host/var/lib/docker/containers:Z
       - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx:Z
       - /var/log/php-fpm:/host/var/log/php-fpm:Z

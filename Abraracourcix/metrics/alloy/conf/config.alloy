@@ -395,9 +395,38 @@ prometheus.scrape "cadvisor" {
   scrape_interval = "15s"
 
   forward_to = [
+    prometheus.relabel.drop_and_relabel.receiver,
+  ]
+}
+
+prometheus.relabel "drop_and_relabel" {
+  forward_to = [
     prometheus.remote_write.to_grafana_cloud.receiver,
     prometheus.remote_write.to_mimir.receiver,
   ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_tasks_state|container_memory_failures_total|container_blkio_device_usage_total"
+    action        = "drop"
+  }
+
+  // drop query string to reduce cardinality
+  rule {
+    source_labels = ["server_http_route"]
+    regex         = "(/[^?#]*).*"
+    target_label  = "server_http_route"
+    replacement   = "$1"
+  }
+
+  // drop id for cadvisory metrics
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_fs_.+"
+    target_label  = "id"
+    replacement   = ""
+    action        = "replace"
+  }
 }
 
 
@@ -447,9 +476,33 @@ otelcol.receiver.otlp "in" {
     ]
 
     traces = [
+      otelcol.processor.transform.fix_route.input,
+    ]
+  }
+}
+
+otelcol.processor.transform "fix_route" {
+  error_mode = "ignore"
+  trace_statements {
+    context = "span"
+    statements = [
+      "set(attributes[\"http.route\"], attributes[\"http.target\"]) where attributes[\"http.route\"] == \"/\"",
+      "set(name, Concat([attributes[\"http.method\"], attributes[\"http.route\"]], \" \")) where attributes[\"http.route\"] != nil and resource.attributes[\"service.name\"] == \"nginx\"",
+    ]
+  }
+  output {
+    traces = [
+      otelcol.connector.servicegraph.default.input,
       otelcol.exporter.otlphttp.out.input,
       otelcol.exporter.otlphttp.tempo_local.input,
     ]
+  }
+}
+
+otelcol.connector.servicegraph "default" {
+  dimensions = ["http.method", "http.route"]
+  output {
+    metrics = [otelcol.processor.batch.otel_metrics.input]
   }
 }
 
@@ -489,4 +542,3 @@ otelcol.exporter.otlphttp "tempo_local" {
     endpoint = "http://tempo:4318"
   }
 }
-
