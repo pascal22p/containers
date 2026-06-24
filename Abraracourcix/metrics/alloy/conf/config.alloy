@@ -34,6 +34,12 @@ loki.process "journal_remote" {
     selector = "{detected_level=~\"info|notice\"} != \"status=sent (delivered via dovecot service)\""
     action   = "drop"
   }
+
+  // Drop imapsync debug logs only for remote Loki
+  stage.match {
+    selector = "{syslog_identifier=\"imapsync\", level=\"debug\"}"
+    action   = "drop"
+  }
 }
 
 discovery.relabel "journal" {
