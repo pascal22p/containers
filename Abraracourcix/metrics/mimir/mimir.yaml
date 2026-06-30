@@ -1,0 +1,44 @@
+multitenancy_enabled: false
+
+server:
+  http_listen_port: 9001
+
+limits:
+  ingestion_rate: 10000
+  max_global_series_per_user: 0
+  ruler_max_rules_per_rule_group: 100
+  ruler_max_rule_groups_per_tenant: 100
+
+blocks_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/tsdb
+
+ruler:
+  enable_api: true
+  rule_path: /data/ruler
+
+ruler_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/rules
+
+alertmanager_storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/alertmanager
+
+compactor:
+  data_dir: /data/compactor
+
+ingester:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+

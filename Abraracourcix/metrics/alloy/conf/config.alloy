@@ -1,3 +1,59 @@
+prometheus.scrape "alloy" {
+  targets = [
+    {
+      __address__ = "localhost:9999",
+    },
+  ]
+
+  scrape_interval = "30s"
+
+  forward_to = [prometheus.remote_write.to_mimir.receiver]
+}
+
+////////////////////////
+
+prometheus.exporter.process "host_processes" {
+  track_children = false
+  procfs_path = "/host/proc"
+
+  matcher {
+    name = "{{.Comm}}"
+    comm = [
+      "nginx", "apache2", "php-fpm",
+      "mariadbd",
+      "dovecot", "imap", "imap-login",
+      "master", "qmgr", "pickup",
+      "clamd", "freshclam",
+      "carbon-relay-ng",
+      "systemd", "cron", "ntpd", "firewalld", "fail2ban-server",
+    ]
+  }
+}
+
+
+discovery.relabel "processes" {
+  targets = prometheus.exporter.process.host_processes.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = "idefix.debroglie.net"
+  }
+}
+
+prometheus.scrape "processes" {
+  job_name = "processes"
+
+  targets = discovery.relabel.processes.output
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+/////////////////
+
 prometheus.scrape "loki" {
   targets = [{
     "__address__" = "loki:3100",
@@ -11,6 +67,7 @@ prometheus.scrape "loki" {
   ]
 }
 
+
 loki.process "journal" {
 	forward_to = [loki.write.default.receiver, loki.process.journal_remote.receiver]
 
@@ -21,13 +78,15 @@ loki.process "journal" {
 
 	stage.labels {
 		values = {
-			level = null,
+			level = "level",
 		}
 	}
 }
 
 loki.process "journal_remote" {
-  forward_to = [loki.write.remote.receiver]
+  forward_to = [
+    //loki.write.remote.receiver
+  ]
 
   // Drop info/notice logs EXCEPT dovecot delivery confirmations
   stage.match {
@@ -401,10 +460,9 @@ prometheus.scrape "mimir" {
   ]
 
   metrics_path    = "/metrics"
-  scrape_interval = "15s"
+  scrape_interval = "30s"
 
   forward_to = [
-    prometheus.remote_write.to_grafana_cloud.receiver,
     prometheus.remote_write.to_mimir.receiver,
   ]
 }
@@ -428,18 +486,23 @@ prometheus.scrape "cadvisor" {
   ]
 
   metrics_path    = "/metrics"
-  scrape_interval = "15s"
+  scrape_interval = "30s"
 
   forward_to = [
-    prometheus.relabel.drop_and_relabel.receiver,
+    prometheus.relabel.cadvisor_common.receiver,
   ]
 }
 
-prometheus.relabel "drop_and_relabel" {
+prometheus.relabel "cadvisor_common" {
   forward_to = [
-    prometheus.remote_write.to_grafana_cloud.receiver,
+    //prometheus.relabel.grafana_cloud_filter.receiver,
     prometheus.remote_write.to_mimir.receiver,
   ]
+
+  rule {
+    target_label = "instance"
+    replacement  = "idefix.debroglie.net"
+  }
 
   rule {
     source_labels = ["__name__"]
@@ -465,6 +528,17 @@ prometheus.relabel "drop_and_relabel" {
   }
 }
 
+prometheus.relabel "grafana_cloud_filter" {
+  forward_to = [
+    //prometheus.remote_write.to_grafana_cloud.receiver,
+  ]
+
+  rule {
+    source_labels = ["id"]
+    regex         = "/system\\.slice/.*"
+    action        = "drop"
+  }
+}
 
 // =====================
 // REMOTE WRITE BACKENDS
@@ -533,13 +607,18 @@ otelcol.processor.transform "fix_route" {
       "set(attributes[\"http.route\"], attributes[\"http.target\"]) where attributes[\"http.route\"] == \"/\"",
       "replace_pattern(attributes[\"http.route\"], \"(/[^?#]*).*\", \"$1\")",
       "set(name, Concat([attributes[\"http.method\"], attributes[\"http.route\"]], \" \")) where attributes[\"http.route\"] != nil and resource.attributes[\"service.name\"] == \"nginx\"",
+      // drop bot PHP probes entirely
+      `set(attributes["http.route"], "/unknown.php") where IsMatch(attributes["http.route"], ".*\\.php$")`,
+      //"set(attributes[\"http.route\"], \"/unknown\") where IsMatch(attributes[\"http.route\"], \".*\\.php$\")",
+      // parameterise genealogy numeric IDs
+      //"replace_all_patterns(attributes, \"value\", \"/base/[0-9]+/(individual|tree|ascendant/tree|source-citation|source-record|person-details|event|event-source)/[0-9]+\", \"/base/:id/$1/:id\")",
     ]
   }
 
   output {
     traces = [
       otelcol.connector.servicegraph.default.input,
-      otelcol.exporter.otlphttp.out.input,
+      //otelcol.exporter.otlphttp.out.input,
       otelcol.exporter.otlphttp.tempo_local.input,
     ]
   }
@@ -568,7 +647,7 @@ prometheus.relabel "cloud_only" {
 otelcol.exporter.prometheus "to_prometheus" {
   forward_to = [
     prometheus.remote_write.to_mimir.receiver,
-    prometheus.relabel.cloud_only.receiver,
+    //prometheus.relabel.cloud_only.receiver,
   ]
 }
 

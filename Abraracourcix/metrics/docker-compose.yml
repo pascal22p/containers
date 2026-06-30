@@ -93,7 +93,9 @@ services:
 
   alloy:
     container_name: grafana_alloy
+    pid: host
     volumes:
+      - /proc:/host/proc:ro
       - ./alloy/conf:/etc/alloy:Z
       - ./alloy/data:/var/lib/alloy/data:Z
       - /var/lib/docker/containers:/host/var/lib/docker/containers:Z
@@ -121,24 +123,6 @@ services:
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
-
-#  prometheus:
-#    image: prom/prometheus:v3.5.0
-#    container_name: prometheus
-#    restart: always
-#    networks:
-#      - loki
-#    ports:
- #     - "127.0.0.1:9090:9090"
-#    volumes:
-#      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-#      - ./prometheus/data:/prometheus
-#    command:
-#      - '--config.file=/etc/prometheus/prometheus.yml'
-#      - '--storage.tsdb.path=/prometheus'
-#    logging:
-#      options:
-#        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   mimir:
     image: grafana/mimir:3.1.1
