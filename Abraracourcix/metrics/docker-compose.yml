@@ -115,7 +115,7 @@ services:
       - "127.0.0.1:9009:9009"
       - "127.0.0.1:4318:4318"
       - "127.0.0.1:4317:4317"
-    image: grafana/alloy:v1.17.0
+    image: grafana/alloy:v1.17.1
     command: 'run --server.http.listen-addr=0.0.0.0:9999 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
       - dockernet
