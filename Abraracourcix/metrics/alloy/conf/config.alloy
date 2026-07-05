@@ -1,3 +1,10 @@
+logging {
+  level  = "warn"
+  format = "logfmt"
+}
+
+/////////////////////////
+
 prometheus.scrape "alloy" {
   targets = [
     {
@@ -517,15 +524,6 @@ prometheus.relabel "cadvisor_common" {
     target_label  = "server_http_route"
     replacement   = "$1"
   }
-
-  // drop id for cadvisory metrics
-  rule {
-    source_labels = ["__name__"]
-    regex         = "container_fs_.+"
-    target_label  = "id"
-    replacement   = ""
-    action        = "replace"
-  }
 }
 
 prometheus.relabel "grafana_cloud_filter" {
@@ -678,5 +676,11 @@ otelcol.exporter.otlphttp "out" {
 otelcol.exporter.otlphttp "tempo_local" {
   client {
     endpoint = "http://tempo:4318"
+  }
+}
+
+otelcol.exporter.otlphttp "pyroscope_local" {
+  client {
+    endpoint = "http://pyroscope:4040"
   }
 }

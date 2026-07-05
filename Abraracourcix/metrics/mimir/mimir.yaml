@@ -4,29 +4,37 @@ server:
   http_listen_port: 9001
 
 limits:
-  ingestion_rate: 10000
+  ingestion_rate: 50000
+  ingestion_burst_size: 200000
   max_global_series_per_user: 0
   ruler_max_rules_per_rule_group: 100
   ruler_max_rule_groups_per_tenant: 100
 
+common:
+  storage:
+    backend: s3
+    s3:
+      endpoint: s3.gra.io.cloud.ovh.net
+      region: gra
+      access_key_id: ${S3_ACCESS_KEY}
+      secret_access_key: ${S3_SECRET}
+      bucket_lookup_type: path
+      insecure: false
+
 blocks_storage:
-  backend: filesystem
-  filesystem:
-    dir: /data/tsdb
-
-ruler:
-  enable_api: true
-  rule_path: /data/ruler
-
-ruler_storage:
-  backend: filesystem
-  filesystem:
-    dir: /data/rules
+  backend: s3
+  s3:
+    bucket_name: pascal22p-mimir
 
 alertmanager_storage:
-  backend: filesystem
-  filesystem:
-    dir: /data/alertmanager
+  backend: s3
+  s3:
+    bucket_name: pascal22p-alertmanager
+
+ruler_storage:
+  backend: s3
+  s3:
+    bucket_name: pascal22p-ruler
 
 compactor:
   data_dir: /data/compactor
