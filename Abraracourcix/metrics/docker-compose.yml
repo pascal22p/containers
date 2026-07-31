@@ -110,6 +110,7 @@ services:
       - PROM_TOKEN=${PROM_TOKEN}
       - OTEL_ID=${OTEL_ID}
       - OTEL_TOKEN=${OTEL_TOKEN}
+      - MYSQL_EXPORTER_PASSWORD=${MYSQL_EXPORTER_PASSWORD}
     ports:
       - "127.0.0.1:9999:9999"
       - "127.0.0.1:9009:9009"

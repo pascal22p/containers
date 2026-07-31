@@ -168,7 +168,7 @@ loki.process "nginx_stream" {
 
 	stage.timestamp {
 		source = "timestamp"
-		format = "29/May/2022:18:04:00 +0000"
+		format = "02/Jan/2006:15:04:05 -0700"
 	}
 }
 
@@ -683,4 +683,40 @@ otelcol.exporter.otlphttp "pyroscope_local" {
   client {
     endpoint = "http://pyroscope:4040"
   }
+}
+
+//////////////////////////
+//  dovecot scrape metrics
+/////////////////////////
+
+prometheus.scrape "dovecot" {
+  targets = [
+    {
+      __address__ = "172.17.0.1:9900",
+    },
+  ]
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+//////////////////////
+//  Mariadb
+//////////////////////
+
+prometheus.exporter.mysql "mariadb" {
+  data_source_name = "exporter:" + sys.env("MYSQL_EXPORTER_PASSWORD") + "@tcp(172.17.0.1:3306)/"
+}
+
+prometheus.scrape "mariadb" {
+  targets = prometheus.exporter.mysql.mariadb.targets
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
 }
