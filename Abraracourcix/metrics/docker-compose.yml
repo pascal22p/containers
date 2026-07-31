@@ -51,7 +51,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}" 
 
   loki:
-    image: grafana/loki:3.7.3
+    image: grafana/loki:3.7.4
     container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
@@ -72,7 +72,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   grafana:
-    image: grafana/grafana:13.1.0
+    image: grafana/grafana:13.1.1
     container_name: grafana
     restart: always
     volumes:
@@ -116,7 +116,7 @@ services:
       - "127.0.0.1:9009:9009"
       - "127.0.0.1:4318:4318"
       - "127.0.0.1:4317:4317"
-    image: grafana/alloy:v1.17.0
+    image: grafana/alloy:v1.18.0
     command: 'run --server.http.listen-addr=0.0.0.0:9999 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
       - dockernet
@@ -126,7 +126,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   mimir:
-    image: grafana/mimir:3.1.2
+    image: grafana/mimir:3.1.4
     container_name: mimir
     command:
       - -config.file=/etc/mimir/mimir.yaml
