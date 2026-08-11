@@ -196,9 +196,14 @@ services:
     volumes:
       - ./pyroscope/pyroscope.yaml:/etc/pyroscope/config.yaml
       - pyroscope-storage:/data
+    environment:
+      - S3_PYROSCOPE_BUCKET=${S3_PYROSCOPE_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET=${S3_SECRET}
     command:
       - "server"
       - "-config.file=/etc/pyroscope/config.yaml"
+      - "-config.expand-env=true"
     ports:
       - "127.0.0.1:4040:4040"
     networks:
