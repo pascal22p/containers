@@ -2,7 +2,7 @@ version: "3"
 
 services:
   adminer:
-    image: adminer:5.5.1
+    image: adminer:6.0.1
     container_name: adminer
     network_mode: "host"
     restart: unless-stopped
