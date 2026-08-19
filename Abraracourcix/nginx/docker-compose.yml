@@ -1,6 +1,6 @@
 services:
   nginx:
-    image: nginx:1.31.3-otel
+    image: nginx:1.31.4-otel
     container_name: nginx
     restart: unless-stopped
     tty: true
