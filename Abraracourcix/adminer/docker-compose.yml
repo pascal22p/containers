@@ -11,7 +11,7 @@ services:
       ADMINER_DEFAULT_DB_HOST: host.docker.internal
       ADMINER_DEFAULT_SERVER: host.docker.internal
       ADMINER_DESIGN: nette
-      ADMINER_PLUGINS: tables-filter tinymce
+      ADMINER_PLUGINS: tables-filter
     #ports:
     #  - 127.0.0.1:9564:8080
     logging:
