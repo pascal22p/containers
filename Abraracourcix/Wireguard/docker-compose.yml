@@ -1,0 +1,23 @@
+services:
+  wireguard:
+    image: lscr.io/linuxserver/wireguard:1.0.20260223
+    container_name: wireguard
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - SERVERURL=parois.net
+      - SERVERPORT=51820
+      - PEERS=laptopPascal,iphonePascal
+      - PEERDNS=auto
+      - INTERNAL_SUBNET=10.13.13.0
+    volumes:
+      - ./config:/config
+      - /lib/modules:/lib/modules
+    ports:
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    restart: unless-stopped
