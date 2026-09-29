@@ -1,10 +1,12 @@
 networks:
-  loki:
+  dockernet:
+    external: true
 
 services:
   alloy:
     container_name: grafana_alloy
     volumes:
+      - /proc:/host/proc:ro
       - ./conf:/etc/alloy
       - /var/lib/docker/containers:/host/var/lib/docker/containers
       - /opt/containers/MediaCentre/nginx/logs/:/host/var/log/nginx
@@ -14,13 +16,34 @@ services:
       - LOKI_TOKEN=${LOKI_TOKEN}
       - LOKI_IDEFIX_USER=${LOKI_IDEFIX_USER}
       - LOKI_IDEFIX_TOKEN=${LOKI_IDEFIX_TOKEN}
+      - MYSQL_EXPORTER_PASSWORD=${MYSQL_EXPORTER_PASSWORD}
     ports:
-      - 12345:12345
+      - "127.0.0.1:12345:12345"
+      - "127.0.0.1:4318:4318"
     image: grafana/alloy:v1.20.1
     command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
-      - loki
+      - dockernet
     restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: cadvisor
+    networks:
+      - dockernet
+    privileged: true
+    ports:
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
