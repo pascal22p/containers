@@ -64,7 +64,7 @@ services:
 
 
   mariadb-ch:
-    image: mariadb:11.4
+    image: mariadb:13.0
     container_name: mariadb-ch
     restart: unless-stopped
     environment:
