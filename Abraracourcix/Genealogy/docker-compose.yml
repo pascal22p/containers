@@ -30,7 +30,7 @@ services:
       EXTERNAL_ASSETS_PATH: /tmp/external-assets
       CUSTOM_JS_FILE: "javascript/faro.js"
       PLAY_FILTERS_HOSTS: genealogie.parois.net
-      PROTOCOL: https://
+      PROTOCOL: http://
       APP_NAME: Parois.net
       JAVA_OPTS: >-
         -Dlogger.file=/opt/logback.xml
