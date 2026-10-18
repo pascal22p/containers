@@ -6,7 +6,7 @@ networks:
 
 services:
   server:
-    image: gitea/gitea:28.1.0
+    image: gitea/gitea:28.2.0
     container_name: gitea
     environment:
       - USER_UID=1000
