@@ -20,7 +20,7 @@ services:
     ports:
       - "127.0.0.1:12345:12345"
       - "127.0.0.1:4318:4318"
-    image: grafana/alloy:v1.21.0
+    image: grafana/alloy:v1.21.1
     command: 'run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
     networks:
       - dockernet
