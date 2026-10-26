@@ -280,6 +280,9 @@ loki.process "docker" {
 		}
 	}
 
+        // Remove ANSI colour/control codes
+        stage.decolorize {}
+
         // Parse JSON output from containers that emit it (e.g. genealogy/logstash encoder)
 	stage.match {
 		selector = "{container_name=\"genealogy\"}"
