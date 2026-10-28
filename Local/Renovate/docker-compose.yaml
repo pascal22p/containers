@@ -10,7 +10,7 @@ services:
       RENOVATE_AUTODISCOVER: "false"
       RENOVATE_DRY_RUN: null
       LOG_LEVEL: info
-      LOG_FILE: /usr/src/app/config/renovate.log
+      LOG_FILE: /usr/src/app/renovate.log
       LOG_FILE_LEVEL: info
       RENOVATE_GIT_PRIVATE_KEY: ${RENOVATE_GIT_PRIVATE_KEY}
 
