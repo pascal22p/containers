@@ -1,3 +1,5 @@
+const repositories = require('./repositories.json');
+
 module.exports = {
   platform: "github",
   onboarding: false,
@@ -19,8 +21,7 @@ module.exports = {
     }
   ],
 
-  repositories: [
-    "pascal22p/hmrc-example-uk-fuel"
-  ]
+  repositories: repositories
 };
+
 

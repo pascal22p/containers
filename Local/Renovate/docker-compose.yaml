@@ -15,6 +15,5 @@ services:
       RENOVATE_GIT_PRIVATE_KEY: ${RENOVATE_GIT_PRIVATE_KEY}
 
     volumes:
-      - ./renovate/config.js:/usr/src/app/config.js
-      - ./renovate:/usr/src/app/config
+      - ./renovate:/usr/src/app
 
