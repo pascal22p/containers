@@ -1,0 +1,412 @@
+
+// =========================
+// OTEL RECEIVER (Beyla / Apps)
+// =========================
+
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// =========================
+// OTEL PROCESSOR
+// =========================
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.prometheus.to_mimir.input]
+    traces  = [otelcol.exporter.otlphttp.tempo.input]
+  }
+}
+
+// Convert OTLP metrics to Prometheus and send to Mimir.
+otelcol.exporter.prometheus "to_mimir" {
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+prometheus.exporter.unix "local" {}
+
+prometheus.scrape "otel_metrics" {
+  targets = prometheus.exporter.unix.local.targets
+
+  forward_to = [prometheus.remote_write.mimir.receiver]
+}
+
+// =========================
+// MIMIR (METRICS)
+// =========================
+
+prometheus.remote_write "mimir" {
+  endpoint {
+    url = "https://mimir.debroglie.net/api/v1/push"
+
+    basic_auth {
+      username = sys.env("LOKI_IDEFIX_USER")
+      password = sys.env("LOKI_IDEFIX_TOKEN")
+    }
+  }
+
+  external_labels = {
+    host = "mediacentre",
+  }
+}
+
+// =========================
+// TEMPO (TRACES)
+// =========================
+
+otelcol.auth.basic "tempo_creds" {
+  username = sys.env("LOKI_IDEFIX_USER")
+  password = sys.env("LOKI_IDEFIX_TOKEN")
+}
+
+otelcol.exporter.otlphttp "tempo" {
+  client {
+    endpoint = "https://tempo.debroglie.net"
+    auth     = otelcol.auth.basic.tempo_creds.handler
+  }
+}
+
+// =========================
+// LOKI WRITES
+// =========================
+
+loki.write "loki" {
+  endpoint {
+    url = "https://loki.debroglie.net/api/prom/push"
+
+    basic_auth {
+      username = sys.env("LOKI_IDEFIX_USER")
+      password = sys.env("LOKI_IDEFIX_TOKEN")
+    }
+  }
+}
+
+loki.write "remote" {
+  endpoint {
+    url = "https://logs-prod-008.grafana.net/api/prom/push"
+
+    basic_auth {
+      username = sys.env("LOKI_ID")
+      password = sys.env("LOKI_TOKEN")
+    }
+  }
+
+  external_labels = {
+    host = "mediacentre",
+  }
+}
+
+// =========================
+// JOURNAL LOGS
+// =========================
+
+loki.process "journal" {
+  forward_to = [
+    loki.write.loki.receiver,
+    loki.write.remote.receiver,
+  ]
+
+  stage.labels {
+    values = {
+      host = "host",
+    }
+  }
+}
+
+loki.source.journal "journal" {
+  format_as_json = true
+  path           = "/host/var/log/journal"
+
+  labels = {
+    host = "mediacentre",
+    job  = "systemd-journal",
+  }
+
+  forward_to = [loki.process.journal.receiver]
+}
+
+// =========================
+// DOCKER LOGS
+// central-heating
+// =========================
+
+local.file_match "docker" {
+  path_targets = [{
+    __address__ = "localhost",
+    __path__    = "/host/var/lib/docker/containers/*/*log",
+    host        = "mediacentre",
+    job         = "dockerlogs",
+  }]
+}
+
+loki.process "docker" {
+  forward_to = [
+    loki.write.loki.receiver,
+    loki.write.remote.receiver,
+  ]
+
+  // Parse the outer Docker JSON log record.
+  stage.json {
+    expressions = {
+      output = "log",
+      stream = "stream",
+      time   = "time",
+      attrs  = "",
+    }
+  }
+
+  // Extract the Docker tag from attrs, where available.
+  stage.json {
+    expressions = {
+      tag = "",
+    }
+
+    source = "attrs"
+  }
+
+  // Expected tag format:
+  // image_name|container_name|image_id|container_id
+  stage.regex {
+    expression = "^(?P<image_name>[^|]+)\\|(?P<container_name>[^|]+)\\|(?P<image_id>[^|]+)\\|(?P<container_id>[^|]+)$"
+    source     = "tag"
+  }
+
+  // Promote Docker metadata to labels.
+  stage.labels {
+    values = {
+      container_name = "container_name",
+      image_name     = "image_name",
+      stream         = "stream",
+    }
+  }
+
+  // Discard every container except central-heating.
+  stage.match {
+    selector = "{container_name!=\"central-heating\"}"
+
+    action = "drop"
+  }
+
+  // Parse application JSON logs when present.
+  // Plain-text log lines are preserved as well.
+  stage.json {
+    expressions = {
+      level   = "level",
+      logger  = "logger_name",
+      message = "message",
+    }
+
+    source = "output"
+  }
+
+  // Add the application label and useful structured fields.
+  stage.labels {
+    values = {
+      level  = "level",
+      logger = "logger",
+    }
+  }
+
+  stage.static_labels {
+    values = {
+      app = "central-heating",
+    }
+  }
+
+  // Use the original Docker timestamp.
+  stage.timestamp {
+    source = "time"
+    format = "RFC3339Nano"
+  }
+
+  // Emit the application message instead of the outer Docker JSON.
+  stage.output {
+    source = "output"
+  }
+}
+
+loki.source.file "docker" {
+  targets    = local.file_match.docker.targets
+  forward_to = [loki.process.docker.receiver]
+}
+
+// =========================
+// NGINX STREAM LOGS
+// =========================
+
+local.file_match "nginx_stream" {
+  path_targets = [{
+    __address__ = "mediacentre",
+    __path__    = "/host/var/log/nginx/stream_*log",
+    host        = "mediacentre",
+    job         = "nginx-stream",
+  }]
+}
+
+loki.process "nginx_stream" {
+  forward_to = [
+    loki.write.loki.receiver,
+    loki.write.remote.receiver,
+  ]
+
+  stage.regex {
+    expression = "^(?P<client_ip>\\S+) \\[(?P<timestamp>[^]]+)\\] (?P<protocol>\\S+) (?P<status>\\d+) (?P<bytes_sent>\\d+) (?P<bytes_received>\\d+) (?P<request_time>[0-9.]+) verify=(?P<verify>\\S+) backend=(?P<backend>\\S+)"
+  }
+
+  stage.labels {
+    values = {
+      protocol = "protocol",
+      status   = "status",
+      verify   = "verify",
+      backend  = "backend",
+    }
+  }
+
+  stage.static_labels {
+    values = {
+      host = "mediacentre",
+      job  = "nginx-stream",
+    }
+  }
+}
+
+loki.source.file "nginx_stream" {
+  targets    = local.file_match.nginx_stream.targets
+  forward_to = [loki.process.nginx_stream.receiver]
+}
+
+// =========================
+// NGINX HTTP LOGS
+// =========================
+
+local.file_match "nginx" {
+  path_targets = [{
+    __address__      = "mediacentre",
+    __path__         = "/host/var/log/nginx/*log",
+    __path_exclude__ = "/host/var/log/nginx/stream_*log",
+    host             = "mediacentre",
+    job              = "nginx",
+  }]
+}
+
+loki.process "nginx" {
+  forward_to = [
+    loki.write.loki.receiver,
+    loki.write.remote.receiver,
+  ]
+
+  stage.static_labels {
+    values = {
+      host = "mediacentre",
+    }
+  }
+}
+
+loki.source.file "nginx" {
+  targets    = local.file_match.nginx.targets
+  forward_to = [loki.process.nginx.receiver]
+}
+
+// =========================
+// CADVISOR
+// =========================
+
+prometheus.scrape "cadvisor" {
+  targets = [
+    { "__address__" = "cadvisor:8080" },
+  ]
+
+  metrics_path    = "/metrics"
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.relabel.cadvisor_common.receiver,
+  ]
+}
+
+prometheus.relabel "cadvisor_common" {
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_tasks_state|container_memory_failures_total|container_blkio_device_usage_total"
+    action        = "drop"
+  }
+
+  // Drop query strings to reduce cardinality.
+  rule {
+    source_labels = ["server_http_route"]
+    regex         = "(/[^?#]*).*"
+    target_label  = "server_http_route"
+    replacement   = "$1"
+  }
+}
+
+// =========================
+// HOST PROCESSES
+// =========================
+
+prometheus.exporter.process "host_processes" {
+  track_children = false
+  procfs_path    = "/host/proc"
+
+  matcher {
+    name = "{{.Comm}}"
+
+    comm = [
+      "nginx", "apache2", "php-fpm",
+      "mariadbd",
+      "dovecot", "imap", "imap-login",
+      "master", "qmgr", "pickup",
+      "clamd", "freshclam",
+      "carbon-relay-ng",
+      "systemd", "cron", "ntpd", "firewalld", "fail2ban-server",
+      "Plex Media Serv", "Plex Tuner Serv", "homebridge",
+      "python3", "python", "mosquitto",
+    ]
+  }
+}
+
+prometheus.scrape "processes" {
+  job_name = "processes"
+
+  targets = prometheus.exporter.process.host_processes.targets
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
+
+// =========================
+// MARIADB
+// =========================
+
+prometheus.exporter.mysql "mariadb" {
+  data_source_name = "exporter:" + sys.env("MYSQL_EXPORTER_PASSWORD") + "@tcp(172.17.0.1:3306)/"
+}
+
+prometheus.scrape "mariadb" {
+  targets = prometheus.exporter.mysql.mariadb.targets
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.mimir.receiver,
+  ]
+}
+

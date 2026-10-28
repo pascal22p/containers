@@ -1,0 +1,98 @@
+services:
+  central-heating:
+    platform: linux/amd64
+    image: pascal22p/central-heating-command:latest-snapshot
+    container_name: central-heating
+    restart: unless-stopped
+    networks:
+      - dockernet
+    environment:
+      APP_SECRET: ${APP_SECRET}
+      DB_URL: ${DB_URL}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      NEST_CLIENT_ID: ${NEST_CLIENT_ID}
+      NEST_CLIENT_SECRET: ${NEST_CLIENT_SECRET}
+      NEST_PROJECT_ID: ${NEST_PROJECT_ID}
+      NEST_DEVICE_ID: ${NEST_DEVICE_ID}
+      NEST_SCHEDULER_IS_ENABLED: ${NEST_SCHEDULER_IS_ENABLED}
+      NEST_SCHEDULER_INTERVAL_IN_SECONDS: ${NEST_SCHEDULER_INTERVAL_IN_SECONDS}
+      NEST_REDIRECT_URI: ${NEST_REDIRECT_URI}
+      MQTT_IS_ENABLED: ${MQTT_IS_ENABLED}
+      MQTT_TRV_DEVICES: ${MQTT_TRV_DEVICES}
+      MQTT_TEMPERATURE_DEVICES: ${MQTT_TEMPERATURE_DEVICES}
+      GRAPHITE_HOST: ${GRAPHITE_HOST}
+      GRAPHITE_PORT: ${GRAPHITE_PORT}
+      GRAPHITE_PREFIX: ${GRAPHITE_PREFIX}
+      HEATING_DEMAND_IS_ENABLED: ${HEATING_DEMAND_IS_ENABLED}
+      HEATING_SENSOR_CONTROL_IS_ENABLED: ${HEATING_SENSOR_CONTROL_IS_ENABLED}
+      HEATING_TRV_CONTROL_IS_ENABLED: ${HEATING_TRV_CONTROL_IS_ENABLED}
+      PYROSCOPE_AGENT_ENABLED: false
+      PYROSCOPE_APPLICATION_NAME: ${PYROSCOPE_NAME}
+      PYROSCOPE_PROFILER_ALLOC: 512k
+      PYROSCOPE_SERVER_ADDRESS: ${PYROSCOPE_SERVER_ADDRESS}
+      PYROSCOPE_TRACE_PROFILING_ENABLED: false
+      OTEL_RESOURCE_ATTRIBUTES: "service.name=central-heating,deployment.environment=prod"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana_alloy:4318"
+      OTEL_LOGS_EXPORTER: none
+      OTEL_SERVICE_NAME: central-heating
+      PLAY_FILTERS_HOSTS: "."
+      PROTOCOL: http://
+      APP_NAME: Parois.net
+      JAVA_OPTS: >-
+        -Dlogger.file=/opt/logback.xml
+        -javaagent:/opt/grafana-opentelemetry-java.jar
+        -Dotel.javaagent.extensions=/opt/pyroscope-otel-javaagent-extension.jar
+        -Dotel.instrumentation.common.default-enabled=true
+        -Dotel.instrumentation.opentelemetry-annotations.enabled=true
+        -Dotel.instrumentation.methods.enabled=true
+        -Dotel.bsp.max.queue.size=4096
+        -Dotel.bsp.max.export.batch.size=1024
+        -Dotel.bsp.schedule.delay=1000
+    ports:
+      - 9245:9245
+    volumes:
+      - ./Config/logback.xml:/opt/logback.xml:ro
+      - ./otel/grafana-opentelemetry-java.jar:/opt/grafana-opentelemetry-java.jar:ro
+      - ./otel/pyroscope-otel-javaagent-extension.jar:/opt/pyroscope-otel-javaagent-extension.jar:ro
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        max-size: "50m"
+        max-file: "3"
+
+
+  mariadb-ch:
+    image: mariadb:13.0
+    container_name: mariadb-ch
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_USER}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mariadb:/var/lib/mysql
+    networks:
+      - dockernet
+
+  adminer-ch:
+    image: adminer:latest
+    container_name: adminer-ch
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+    ports:
+      - 8081:8080
+    depends_on:
+      - mariadb-ch
+    networks:
+      - dockernet
+
+volumes:
+  mariadb:
+
+networks:
+  dockernet:
+    external: true

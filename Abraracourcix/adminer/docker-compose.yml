@@ -2,7 +2,7 @@ version: "3"
 
 services:
   adminer:
-    image: adminer:4.8.1
+    image: adminer:6.2.0
     container_name: adminer
     network_mode: "host"
     restart: unless-stopped
@@ -11,6 +11,9 @@ services:
       ADMINER_DEFAULT_DB_HOST: host.docker.internal
       ADMINER_DEFAULT_SERVER: host.docker.internal
       ADMINER_DESIGN: nette
-      ADMINER_PLUGINS: tables-filter tinymce
+      ADMINER_PLUGINS: tables-filter
     #ports:
     #  - 127.0.0.1:9564:8080
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

@@ -1,0 +1,725 @@
+logging {
+  level  = "warn"
+  format = "logfmt"
+}
+
+/////////////////////////
+
+prometheus.scrape "alloy" {
+  targets = [
+    {
+      __address__ = "localhost:9999",
+    },
+  ]
+
+  scrape_interval = "30s"
+
+  forward_to = [prometheus.remote_write.to_mimir.receiver]
+}
+
+////////////////////////
+
+prometheus.exporter.process "host_processes" {
+  track_children = false
+  procfs_path = "/host/proc"
+
+  matcher {
+    name = "{{.Comm}}"
+    comm = [
+      "nginx", "apache2", "php-fpm",
+      "mariadbd",
+      "dovecot", "imap", "imap-login",
+      "master", "qmgr", "pickup",
+      "clamd", "freshclam",
+      "carbon-relay-ng",
+      "systemd", "cron", "ntpd", "firewalld", "fail2ban-server",
+    ]
+  }
+}
+
+
+discovery.relabel "processes" {
+  targets = prometheus.exporter.process.host_processes.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = "idefix.debroglie.net"
+  }
+}
+
+prometheus.scrape "processes" {
+  job_name = "processes"
+
+  targets = discovery.relabel.processes.output
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+/////////////////
+
+prometheus.scrape "loki" {
+  targets = [{
+    "__address__" = "loki:3100",
+    "job"         = "loki",
+  }]
+
+  metrics_path = "/metrics"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+
+loki.process "journal" {
+	forward_to = [loki.write.default.receiver, loki.process.journal_remote.receiver]
+
+	stage.template {
+		source   = "level"
+		template = "{{ if eq .Value \"0\" }}{{ Replace .Value \"0\" \"emerg\" 1 }}{{ else if eq .Value \"1\" }}{{ Replace .Value \"1\" \"alert\" 1 }}{{ else if eq .Value \"2\" }}{{ Replace .Value \"2\" \"crit\" 1 }}{{ else if eq .Value \"3\" }}{{ Replace .Value \"3\" \"err\" 1 }}{{ else if eq .Value \"4\" }}{{ Replace .Value \"4\" \"warning\" 1 }}{{ else if eq .Value \"5\" }}{{ Replace .Value \"5\" \"notice\" 1 }}{{ else if eq .Value \"6\" }}{{ Replace .Value \"6\" \"info\" 1 }}{{ else if eq .Value \"7\" }}{{ Replace .Value \"7\" \"debug\" 1 }}{{ end }}"
+	}
+
+	stage.labels {
+		values = {
+			level = "level",
+		}
+	}
+}
+
+loki.process "journal_remote" {
+  forward_to = [
+    //loki.write.remote.receiver
+  ]
+
+  // Drop info/notice logs EXCEPT dovecot delivery confirmations
+  stage.match {
+    selector = "{detected_level=~\"info|notice\"} != \"status=sent (delivered via dovecot service)\""
+    action   = "drop"
+  }
+
+  // Drop imapsync debug logs only for remote Loki
+  stage.match {
+    selector = "{syslog_identifier=\"imapsync\", level=\"debug\"}"
+    action   = "drop"
+  }
+}
+
+discovery.relabel "journal" {
+	targets = []
+
+	rule {
+		source_labels = ["__journal__systemd_unit"]
+		regex         = "session-[0-9]+\\.scope"
+		target_label  = "unit"
+		replacement   = "session"
+	}
+
+	rule {
+		source_labels = ["__journal_syslog_identifier"]
+		target_label  = "syslog_identifier"
+	}
+
+	rule {
+		source_labels = ["__journal_priority"]
+		target_label  = "level"
+	}
+}
+
+loki.source.journal "journal" {
+	format_as_json = true
+	path           = "/host/var/log/journal"
+	relabel_rules  = discovery.relabel.journal.rules
+	forward_to     = [loki.process.journal.receiver]
+	labels         = {
+		host = "idefix.debroglie.net",
+		job  = "systemd-journal",
+	}
+}
+
+local.file_match "nginx_stream" {
+	path_targets = [{
+		__address__ = "idefix.debroglie.net",
+		__path__    = "/host/var/log/nginx/stream_*log",
+		host        = "idefix.debroglie.net",
+		job         = "nginx-stream",
+	}]
+}
+
+loki.process "nginx_stream" {
+	forward_to = [loki.write.default.receiver, loki.write.remote.receiver]
+
+	stage.regex {
+		expression = "^(?P<ip>[^ ]+) \\[(?P<timestamp>.+)\\] (?P<protocol>[^ ]+) (?P<status>[0-9]+) (?P<bytesent>[0-9]+) (?P<bytereceived>[0-9]+) (?P<sessiontime>[0-9.]+)(?: verify=(?P<verify>[^ ]+))?(?: backend=(?P<backend>.+))?"
+	}
+
+	stage.labels {
+		values = {
+			ip       = null,
+			protocol = null,
+			status   = null,
+                        verify   = null,
+			backend  = null,
+		}
+	}
+
+	stage.timestamp {
+		source = "timestamp"
+		format = "02/Jan/2006:15:04:05 -0700"
+	}
+}
+
+loki.source.file "nginx_stream" {
+	targets               = local.file_match.nginx_stream.targets
+	forward_to            = [loki.process.nginx_stream.receiver]
+	// legacy_positions_file = "/tmp/positions.yaml"
+}
+
+local.file_match "nginx" {
+	path_targets = [{
+		__address__      = "idefix.debroglie.net",
+		__path__         = "/host/var/log/nginx/*log",
+		__path_exclude__ = "/host/var/log/nginx/stream_*log",
+		host             = "idefix.debroglie.net",
+		job              = "nginx",
+	}]
+}
+
+loki.process "nginx" {
+	forward_to = [loki.write.default.receiver, loki.write.remote.receiver]
+
+	stage.json {
+		expressions = {
+			http_host = "http_host",
+		}
+	}
+
+	stage.labels {
+		values = {
+			http_host = null,
+		}
+	}
+
+    stage.match {
+        selector = "{http_host=\"genealogie.parois.net\"}"
+    
+        stage.static_labels {
+            values = {
+                app = "genealogy",
+            }
+        }
+    }
+
+    stage.match {
+       selector = "{http_host=\"uk-fuel-prices.parois.net\"}"
+
+       stage.static_labels {
+            values = {
+               app = "ukfuelprices",
+            }
+       }
+    }
+}
+
+loki.source.file "nginx" {
+	targets               = local.file_match.nginx.targets
+	forward_to            = [loki.process.nginx.receiver]
+	// legacy_positions_file = "/tmp/positions.yaml"
+}
+
+local.file_match "docker" {
+	path_targets = [{
+		__address__ = "localhost",
+		__path__    = "/host/var/lib/docker/containers/*/*log",
+		host        = "idefix.debroglie.net",
+		job         = "dockerlogs",
+	}]
+}
+
+loki.process "docker" {
+	forward_to = [loki.write.default.receiver, loki.write.remote.receiver]
+
+	stage.json {
+		expressions = {
+			attrs  = "",
+			output = "log",
+			stream = "stream",
+		}
+	}
+
+	stage.json {
+		expressions = {
+			tag = "",
+		}
+		source = "attrs"
+	}
+
+	stage.regex {
+		expression = "(?P<image_name>(?:[^|]*[^|])).(?P<container_name>(?:[^|]*[^|])).(?P<image_id>(?:[^|]*[^|])).(?P<container_id>(?:[^|]*[^|]))"
+		source     = "tag"
+	}
+
+	stage.drop {
+		expression = ".*\\[listener\\] MetricLineReceiver connection with.*"
+		source     = "output"
+	}
+
+	stage.timestamp {
+		source = "time"
+		format = "RFC3339Nano"
+	}
+
+	stage.labels {
+		values = {
+			container_name = null,
+			image_name     = null,
+			stream         = null,
+		}
+	}
+
+        // Remove ANSI colour/control codes
+        stage.decolorize {}
+
+        // Parse JSON output from containers that emit it (e.g. genealogy/logstash encoder)
+	stage.match {
+		selector = "{container_name=\"genealogy\"}"
+
+		stage.json {
+			expressions = {
+				level       = "level",
+				logger      = "logger_name",
+				stack_trace = "stack_trace",
+				message     = "message",
+                                trace_id    = "trace_id",
+                                span_id     = "span_id",
+			}
+			source = "output"
+		}
+
+		stage.labels {
+			values = {
+				level  = null,
+				logger = null,
+			}
+		}
+
+		stage.static_labels {
+                        values = {
+			        app = "genealogy",
+                        }
+                }
+
+		stage.output {
+			source = "message"
+		}
+	}
+
+        stage.match {
+               	selector = "{container_name=\"ukfuelprices\"}"
+
+               	stage.json {
+                       	expressions = {
+                               	level       = "level",
+                               	logger      = "logger_name",
+                               	stack_trace = "stack_trace",
+                               	message     = "message",
+                                trace_id    = "trace_id",
+                                span_id     = "span_id",
+                       }
+                       source = "output"
+               }
+
+               stage.labels {
+                       values = {
+                               level  = null,
+                               logger = null,
+                       }
+               }
+
+               stage.static_labels {
+                        values = {
+                      	       app = "ukfuelprices",
+                        }
+                }
+
+               stage.output {
+                       source = "message"
+               }
+      }
+
+        stage.output {
+                source = "output"
+        }
+
+}
+
+loki.source.file "docker" {
+	targets               = local.file_match.docker.targets
+	forward_to            = [loki.process.docker.receiver]
+	// legacy_positions_file = "/tmp/positions.yaml"
+}
+
+local.file_match "php_fpm" {
+	path_targets = [{
+		__address__ = "idefix.debroglie.net",
+		__path__    = "/host/var/log/php-fpm/*error.log",
+		host        = "idefix.debroglie.net",
+		job         = "php-fpm",
+	}]
+}
+
+loki.process "php_fpm" {
+	forward_to = [loki.write.default.receiver, loki.write.remote.receiver]
+
+	stage.multiline {
+		firstline = "^\\[[0-9]+-[a-zA-Z]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+ [^ ]+\\]"
+		  max_lines = 128    // add a reasonable cap
+	}
+
+	stage.regex {
+		expression = "^(?P<time>\\[[0-9]+-[a-zA-Z]+-[0-9]+ [0-9]+:[0-9]+:[0-9]+ [^ ]+\\]) (?P<message>(?s:.*))"
+	}
+}
+
+loki.source.file "php_fpm" {
+	targets               = local.file_match.php_fpm.targets
+	forward_to            = [loki.process.php_fpm.receiver]
+	// legacy_positions_file = "/tmp/positions.yaml"
+}
+
+local.file_match "mariadb_audit" {
+	path_targets = [{
+		__address__ = "idefix.debroglie.net",
+		__path__    = "/host/var/log/mariadb/audit.log",
+		host        = "idefix.debroglie.net",
+		job         = "mariadb-audit",
+	}]
+}
+
+loki.process "mariadb_audit" {
+	forward_to = [loki.write.default.receiver]
+
+	stage.regex {
+                expression = "^(?P<time>[^,]+),(?P<serverhost>[^,]+),(?P<username>[^,]+),(?P<host>[^,]+),(?P<connectionid>[^,]+),(?P<queryid>[^,]+),(?P<operation>[^,]+),(?P<database>[^,]+),(?P<object>'[^']*'|[^,]+),(?P<retcode>[^,]+)*$"
+	}
+
+	stage.labels {
+		values = {
+			database  = null,
+			operation = null,
+			retcode   = null,
+			username  = null,
+		}
+	}
+}
+
+loki.source.file "mariadb_audit" {
+	targets               = local.file_match.mariadb_audit.targets
+	forward_to            = [loki.process.mariadb_audit.receiver]
+	// legacy_positions_file = "/tmp/positions.yaml"
+}
+
+local.file_match "mariadb" {
+	path_targets = [{
+		__address__ = "idefix.debroglie.net",
+		__path__    = "/host/var/log/mariadb/mariadb.log",
+		host        = "idefix.debroglie.net",
+		job         = "mariadb",
+	}]
+}
+
+loki.source.file "mariadb" {
+	targets               = local.file_match.mariadb.targets
+	forward_to            = [loki.write.default.receiver]
+	// legacy_positions_file = "/tmp/positions.yaml"
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/api/prom/push"
+	}
+	external_labels = {}
+}
+
+
+loki.write "remote" {
+       endpoint {
+               url = "https://logs-prod-008.grafana.net/api/prom/push"
+
+               basic_auth {
+                       username = sys.env("LOKI_ID")
+                       password = sys.env("LOKI_TOKEN")
+                }
+        }
+	external_labels = {}
+}
+
+// =====================
+// PROMETHEUS METRICS (SCRAPE + PUSH)
+// =====================
+
+prometheus.scrape "mimir" {
+  targets = [
+    {
+      "__address__" = "mimir:9001",
+      "job"         = "mimir",
+    },
+  ]
+
+  metrics_path    = "/metrics"
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+prometheus.receive_http "in" {
+  http {
+    listen_address = "0.0.0.0"
+    listen_port    = 9009
+  }
+
+  forward_to = [
+    prometheus.remote_write.to_grafana_cloud.receiver,
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+// cadvisor scrape
+prometheus.scrape "cadvisor" {
+  targets = [
+    { "__address__" = "cadvisor:8080" },
+  ]
+
+  metrics_path    = "/metrics"
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.relabel.cadvisor_common.receiver,
+  ]
+}
+
+prometheus.relabel "cadvisor_common" {
+  forward_to = [
+    //prometheus.relabel.grafana_cloud_filter.receiver,
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+
+  rule {
+    target_label = "instance"
+    replacement  = "idefix.debroglie.net"
+  }
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_tasks_state|container_memory_failures_total|container_blkio_device_usage_total"
+    action        = "drop"
+  }
+
+  // drop query string to reduce cardinality
+  rule {
+    source_labels = ["server_http_route"]
+    regex         = "(/[^?#]*).*"
+    target_label  = "server_http_route"
+    replacement   = "$1"
+  }
+}
+
+prometheus.relabel "grafana_cloud_filter" {
+  forward_to = [
+    //prometheus.remote_write.to_grafana_cloud.receiver,
+  ]
+
+  rule {
+    source_labels = ["id"]
+    regex         = "/system\\.slice/.*"
+    action        = "drop"
+  }
+}
+
+// =====================
+// REMOTE WRITE BACKENDS
+// =====================
+
+prometheus.remote_write "to_grafana_cloud" {
+  endpoint {
+    url = "https://prometheus-prod-05-gb-south-0.grafana.net/api/prom/push"
+
+    basic_auth {
+      username = sys.env("PROM_ID")
+      password = sys.env("PROM_TOKEN")
+    }
+  }
+}
+
+prometheus.remote_write "to_mimir" {
+  endpoint {
+    url = "http://mimir:9001/api/v1/push"
+  }
+
+  external_labels = {
+    cluster = "local-federation",
+    host    = "idefix",
+  }
+}
+
+
+// =====================
+// OTEL (METRICS + TRACES)
+// =====================
+
+otelcol.receiver.otlp "in" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    metrics = [
+      otelcol.processor.batch.otel_metrics.input,
+    ]
+
+    traces = [
+      otelcol.processor.transform.fix_route.input,
+    ]
+  }
+}
+
+otelcol.processor.transform "fix_route" {
+  error_mode = "ignore"
+
+  metric_statements {
+    context = "datapoint"
+    statements = [
+      "replace_pattern(attributes[\"server.http.route\"], \"(/[^?#]*).*\", \"$1\")",
+    ]
+  }
+
+  trace_statements {
+    context = "span"
+    statements = [
+      "set(attributes[\"http.route\"], attributes[\"http.target\"]) where attributes[\"http.route\"] == \"/\"",
+      "replace_pattern(attributes[\"http.route\"], \"(/[^?#]*).*\", \"$1\")",
+      "set(name, Concat([attributes[\"http.method\"], attributes[\"http.route\"]], \" \")) where attributes[\"http.route\"] != nil and resource.attributes[\"service.name\"] == \"nginx\"",
+      // drop bot PHP probes entirely
+      `set(attributes["http.route"], "/unknown.php") where IsMatch(attributes["http.route"], ".*\\.php$")`,
+      //"set(attributes[\"http.route\"], \"/unknown\") where IsMatch(attributes[\"http.route\"], \".*\\.php$\")",
+      // parameterise genealogy numeric IDs
+      //"replace_all_patterns(attributes, \"value\", \"/base/[0-9]+/(individual|tree|ascendant/tree|source-citation|source-record|person-details|event|event-source)/[0-9]+\", \"/base/:id/$1/:id\")",
+    ]
+  }
+
+  output {
+    traces = [
+      otelcol.connector.servicegraph.default.input,
+      //otelcol.exporter.otlphttp.out.input,
+      otelcol.exporter.otlphttp.tempo_local.input,
+    ]
+  }
+}
+
+otelcol.connector.servicegraph "default" {
+  latency_histogram_buckets = ["0.1s", "0.2s", "0.5s", "1s", "2s", "5s", "10s", "30s"]
+  dimensions = ["http.method", "http.route"]
+  output {
+    metrics = [otelcol.processor.batch.otel_metrics.input]
+  }
+}
+
+prometheus.relabel "cloud_only" {
+  forward_to = [
+    prometheus.remote_write.to_grafana_cloud.receiver,
+  ]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "traces_.*"
+    action        = "drop"
+  }
+}
+
+otelcol.exporter.prometheus "to_prometheus" {
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+    //prometheus.relabel.cloud_only.receiver,
+  ]
+}
+
+otelcol.processor.batch "otel_metrics" {
+  output {
+    metrics = [
+      otelcol.exporter.prometheus.to_prometheus.input,
+    ]
+  }
+}
+
+// =====================
+// OTEL EXPORTERS (TRACES)
+// =====================
+
+otelcol.auth.basic "creds" {
+  username = sys.env("OTEL_ID")
+  password = sys.env("OTEL_TOKEN")
+}
+
+otelcol.exporter.otlphttp "out" {
+  client {
+    endpoint = "https://otlp-gateway-prod-gb-south-0.grafana.net/otlp"
+    auth     = otelcol.auth.basic.creds.handler
+  }
+}
+
+otelcol.exporter.otlphttp "tempo_local" {
+  client {
+    endpoint = "http://tempo:4318"
+  }
+}
+
+otelcol.exporter.otlphttp "pyroscope_local" {
+  client {
+    endpoint = "http://pyroscope:4040"
+  }
+}
+
+//////////////////////////
+//  dovecot scrape metrics
+/////////////////////////
+
+prometheus.scrape "dovecot" {
+  targets = [
+    {
+      __address__ = "172.17.0.1:9900",
+    },
+  ]
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}
+
+//////////////////////
+//  Mariadb
+//////////////////////
+
+prometheus.exporter.mysql "mariadb" {
+  data_source_name = "exporter:" + sys.env("MYSQL_EXPORTER_PASSWORD") + "@tcp(172.17.0.1:3306)/"
+}
+
+prometheus.scrape "mariadb" {
+  targets = prometheus.exporter.mysql.mariadb.targets
+
+  scrape_interval = "30s"
+
+  forward_to = [
+    prometheus.remote_write.to_mimir.receiver,
+  ]
+}

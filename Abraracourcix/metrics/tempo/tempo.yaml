@@ -1,0 +1,43 @@
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  log_level: warn
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+        http:
+          endpoint: 0.0.0.0:4318
+
+storage:
+  trace:
+    backend: s3
+
+    s3:
+      endpoint: s3.gra.io.cloud.ovh.net
+      region: gra
+      access_key: ${S3_ACCESS_KEY}
+      secret_key: ${S3_SECRET}
+      insecure: false
+      bucket: pascal22p-tempo
+
+    wal:
+      path: /var/tempo/wal
+
+metrics_generator:
+  storage:
+    path: /var/tempo/generator/wal
+    remote_write:
+      - url: http://mimir:9001/api/v1/push
+
+overrides:
+  defaults:
+    metrics_generator:
+      processors:
+        - span-metrics
+        - service-graphs
+

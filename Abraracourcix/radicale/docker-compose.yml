@@ -5,7 +5,7 @@ version: '3.7'
 
 services:
   radicale:
-    image: tomsquest/docker-radicale
+    image: tomsquest/docker-radicale:3.9.0.0
     container_name: radicale
     ports:
       - 127.0.0.1:5232:5232
@@ -26,7 +26,9 @@ services:
       retries: 3
     restart: unless-stopped
     volumes:
-      - ./data/calendars:/data
-      - ./data/config:/config:ro
-
+      - ./data/calendars:/data:Z
+      - ./data/config:/config:ro,Z
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 

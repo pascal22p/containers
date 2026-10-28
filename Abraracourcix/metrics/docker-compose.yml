@@ -1,109 +1,86 @@
-version: '3.8'
-
-networks:
-  loki:
 
 services:
+  carbon-relay-ng:
+    image: grafana/carbon-relay-ng:1.5.20
+    container_name: carbon-relay-ng
+    volumes:
+      - ./carbon-relay/etc:/conf:Z
+      - ./carbon-relay/log:/var/log:Z
+    ports:
+      - "127.0.0.1:2003:2003"
+      #- "127.0.0.1:3300:8081"
+    networks:
+      - dockernet
+    restart: always
+    environment:
+      - TZ=Europe/London
+      - GRAFANA_NET_USER_ID=${GRAFANA_NET_USER_ID}
+      - GRAFANA_NET_API_KEY=${GRAFANA_NET_API_KEY}
+      - LOG_LEVEL=info
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
   graphite:
     container_name: graphite
     image: graphiteapp/graphite-statsd:1.1.10-5
 
     volumes:
-      - ./graphite/storage:/opt/graphite/storage
-      - ./graphite/conf:/opt/graphite/conf
-      - ./graphite/statsd:/opt/statsd/config
-      - ./graphite/log:/var/log
+      - ./graphite/storage:/opt/graphite/storage:Z
+      - ./graphite/conf:/opt/graphite/conf:Z
+      - ./graphite/statsd:/opt/statsd/config:Z
+      - ./graphite/log:/var/log:Z
     ports:
       - "127.0.0.1:7000:80"
-      - "127.0.0.1:2003-2004:2003-2004"
+      #- "127.0.0.1:2003-2014:2003-2004" # direct
+      - "127.0.0.1:2013:2003" # carbon-relay
       - "127.0.0.1:2023-2024:2023-2024"
       - "127.0.0.1:8125:8125/udp"
       - "127.0.0.1:8126:8126"
     networks:
-      - loki
+      - dockernet
     restart: always
     environment:
       - TZ=Europe/London
       - GOCARBON=1
+      - RELAY=0
       - GRAPHITE_WSGI_REQUEST_TIMEOUT=120
-      - GRAPHITE_WSGI_THREADS=1
+      - GRAPHITE_WSGI_THREADS=4
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}" 
 
-  alertmanager:
-    image: prom/alertmanager:v0.27.0
-    container_name: alertmanager
-    command:
-      - '--config.file=/etc/alertmanager/config.yml'
-      - '--storage.path=/alertmanager'
-      - '--log.level=debug'
-    volumes:
-      - ./alertmanager/config:/etc/alertmanager
-    ports:
-      - "127.0.0.1:9093:9093"
-    networks:
-      - loki
-    restart: always
-    logging:
-      options:
-        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
-
   loki:
-    image: grafana/loki:3.3.2
+    image: grafana/loki:3.7.9
     container_name: loki
     ports:
       - "127.0.0.1:3100:3100"
-    command: -config.file=/etc/loki/loki-config.yml
+    command: -config.file=/etc/loki/loki-config.yml -config.expand-env=true
     networks:
-      - loki
+      - dockernet
     volumes:
-      - ./loki/conf:/etc/loki
-      - loki-storage:/loki
-      - ./loki/rules:/etc/loki/rules
-    depends_on:
-     - alertmanager
+      - ./loki/conf:/etc/loki:Z
+      - loki-storage:/loki:Z
+      - ./loki/rules:/etc/loki/rules:Z
     restart: always
-    logging:
-      options:
-        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
-
-  promtail:
-    image: grafana/promtail:3.3.2
-    container_name: promtail
-    ports:
-      - "127.0.0.1:1514:1514/tcp"
-      - "127.0.0.1:1514:1514/udp"
-      - "127.0.0.1:9080:9080"
-    volumes:
-      - ./promtail/log:/var/log
-      - ./promtail/conf:/etc/promtail
-      - /var/lib/docker/containers:/host/var/lib/docker/containers
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx
-      - /var/log/php-fpm:/host/var/log/php-fpm
-      - /var/log/mariadb:/host/var/log/mariadb
-      - /var/log/journal:/host/var/log/journal
-      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx-docker
-      - /etc/machine-id:/etc/machine-id
-      - /home/containers/Abraracourcix/nextcloud/nextcloud/www/data:/host/var/log/nextcloud
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - loki
-    restart: always
+    environment:
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET=${S3_SECRET}
+      - S3_BUCKET=${S3_BUCKET}
     logging:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   grafana:
-    image: grafana/grafana:11.4.0
+    image: grafana/grafana:13.3.0
     container_name: grafana
     restart: always
     volumes:
-      - grafana-storage:/var/lib/grafana
+      - grafana-storage:/var/lib/grafana:Z
     ports:
       - "127.0.0.1:3000:3000"
     networks:
-      - loki
+      - dockernet
     environment:
       - GF_LOG_LEVEL=debug
       - GF_SECURITY_ADMIN_PASSWORD=${GF_SECURITY_ADMIN_PASSWORD}
@@ -114,10 +91,142 @@ services:
       options:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
+  alloy:
+    container_name: grafana_alloy
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - ./alloy/conf:/etc/alloy:Z
+      - ./alloy/data:/var/lib/alloy/data:Z
+      - /var/lib/docker/containers:/host/var/lib/docker/containers:Z
+      - /home/containers/Abraracourcix/nginx/logs:/host/var/log/nginx:Z
+      - /var/log/php-fpm:/host/var/log/php-fpm:Z
+      - /var/log/mariadb:/host/var/log/mariadb:Z
+      - /var/log/journal:/host/var/log/journal:Z
+    environment:
+      - LOKI_ID=${LOKI_ID}
+      - LOKI_TOKEN=${LOKI_TOKEN}
+      - PROM_ID=${PROM_ID}
+      - PROM_TOKEN=${PROM_TOKEN}
+      - OTEL_ID=${OTEL_ID}
+      - OTEL_TOKEN=${OTEL_TOKEN}
+      - MYSQL_EXPORTER_PASSWORD=${MYSQL_EXPORTER_PASSWORD}
+    ports:
+      - "127.0.0.1:9999:9999"
+      - "127.0.0.1:9009:9009"
+      - "127.0.0.1:4318:4318"
+      - "127.0.0.1:4317:4317"
+    image: grafana/alloy:v1.21.2
+    command: 'run --server.http.listen-addr=0.0.0.0:9999 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+    networks:
+      - dockernet
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  mimir:
+    image: grafana/mimir:3.2.3
+    container_name: mimir
+    command:
+      - -config.file=/etc/mimir/mimir.yaml
+      - "-log.level=warn"
+      - -config.expand-env=true
+    volumes:
+      - ./mimir/mimir.yaml:/etc/mimir/mimir.yaml
+      - ./mimir/data/:/data
+    ports:
+      - "127.0.0.1:9001:9001"
+    environment:
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET=${S3_SECRET}
+      - S3_MIMIR_BUCKET=${S3_MIMIR_BUCKET}
+    networks:
+      - dockernet
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: cadvisor
+    networks:
+      - dockernet
+    privileged: true
+    ports:
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    restart: unless-stopped
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  tempo:
+    image: grafana/tempo:3.1.1
+    container_name: tempo
+    command:
+      - "-config.file=/etc/tempo/tempo.yaml"
+      - -config.expand-env=true
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo/tempo.yaml:Z
+      - tempo-storage:/var/tempo:Z
+    ports:
+      - "127.0.0.1:3200:3200"   # Tempo API
+      - "127.0.0.1:4328:4318" # otel http
+    environment:
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET=${S3_SECRET}
+      - S3_TEMPO_BUCKET=${S3_TEMPO_BUCKET}
+    networks:
+      - dockernet
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    container_name: pyroscope
+    volumes:
+      - ./pyroscope/pyroscope.yaml:/etc/pyroscope/config.yaml
+      - pyroscope-storage:/data
+    environment:
+      - S3_PYROSCOPE_BUCKET=${S3_PYROSCOPE_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET=${S3_SECRET}
+    command:
+      - "server"
+      - "-config.file=/etc/pyroscope/config.yaml"
+      - "-config.expand-env=true"
+    ports:
+      - "127.0.0.1:4040:4040"
+    networks:
+      - dockernet
+    restart: always
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
 volumes:
   grafana-storage:
     name: grafana-storage
     external: true
   loki-storage:
     name: loki-storage
+    external: true
+  tempo-storage:
+    name: tempo-storage
+    external: true
+  pyroscope-storage:
+    name: pyroscope-storage
+    external: true
+
+networks:
+  dockernet:
     external: true

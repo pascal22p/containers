@@ -1,0 +1,57 @@
+name: TruffleHog Secret Scan
+
+on:
+  pull_request:
+    branches:
+      - main
+
+  push:
+    branches:
+      - main
+
+  schedule:
+    # Every Sunday at 02:00 UTC
+    - cron: "0 2 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  trufflehog:
+    name: Scan for Secrets
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Required so TruffleHog can inspect git history
+          fetch-depth: 0
+
+      #
+      # Pull Request
+      #
+      - name: Scan Pull Request changes
+        if: github.event_name == 'pull_request'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+
+      #
+      # Push to main
+      #
+      - name: Scan new commits on main
+        if: github.event_name == 'push'
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ${{ github.event.before }}
+          head: ${{ github.sha }}
+
+      #
+      # Scheduled full repository scan
+      #
+      - name: Full repository scan
+        if: github.event_name == 'schedule'
+        uses: trufflesecurity/trufflehog@main
+        

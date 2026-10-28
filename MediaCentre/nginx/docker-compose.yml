@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   nginx:
-    image: nginx:mainline-alpine3.19-otel
+    image: nginx:1.31.8-otel
     container_name: nginx
     restart: unless-stopped
     tty: true
@@ -13,4 +11,6 @@ services:
       - ./ssl/:/etc/ssl/
       - ./logs/:/var/log/nginx/
       - ./client_certs:/etc/nginx/client_certs
-
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"

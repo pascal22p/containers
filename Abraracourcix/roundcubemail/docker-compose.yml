@@ -1,20 +1,18 @@
-version: '3'
-
 services:
   roundcubemail:
-    image: roundcube/roundcubemail:1.6.9-apache
+    image: roundcube/roundcubemail:1.7.5-apache
     container_name: roundcubemail
     restart: unless-stopped
     ports:
       - "127.0.0.1:9044:80"
     volumes:
-      - ./www:/var/www/html
+      - ./www:/var/www/html:Z
     environment:
       - ROUNDCUBEMAIL_DB_TYPE=mysql
-      - ROUNDCUBEMAIL_DB_HOST=172.17.0.1 # same as pgsql container name
-      - ROUNDCUBEMAIL_DB_NAME=roundcube # same as pgsql POSTGRES_DB env name
-      - ROUNDCUBEMAIL_DB_USER=roundcube # same as pgsql POSTGRES_USER env name
-      - ROUNDCUBEMAIL_DB_PASSWORD=${ROUNDCUBEMAIL_DB_PASSWORD} # same as pgsql POSTGRES_PASSWORD env name
+      - ROUNDCUBEMAIL_DB_HOST=172.17.0.1 
+      - ROUNDCUBEMAIL_DB_NAME=roundcube 
+      - ROUNDCUBEMAIL_DB_USER=roundcube 
+      - ROUNDCUBEMAIL_DB_PASSWORD=${ROUNDCUBEMAIL_DB_PASSWORD}
       - ROUNDCUBEMAIL_SKIN=elastic
       - ROUNDCUBEMAIL_DEFAULT_HOST=tls://mail.parois.net
       - ROUNDCUBEMAIL_SMTP_SERVER=tls://mail.parois.net
