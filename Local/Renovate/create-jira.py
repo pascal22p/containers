@@ -144,7 +144,7 @@ def create_jira_ticket(summary: str, description: str) -> dict | None:
         print("Error: JIRA_BEARER_TOKEN environment variable is required")
         sys.exit(1)
 
-    url = "xxxxx" #f"{JIRA_URL.rstrip('/')}/rest/api/2/issue"
+    url = f"{JIRA_URL.rstrip('/')}/rest/api/2/issue"
 
     headers = {
         "Accept": "application/json",
