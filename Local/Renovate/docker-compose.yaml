@@ -13,6 +13,7 @@ services:
       LOG_FILE: /usr/src/app/renovate.log
       LOG_FILE_LEVEL: info
       RENOVATE_GIT_PRIVATE_KEY: ${RENOVATE_GIT_PRIVATE_KEY}
+      RENOVATE_GIT_AUTHOR: ${RENOVATE_GIT_AUTHOR}
 
     volumes:
       - ./renovate:/usr/src/app

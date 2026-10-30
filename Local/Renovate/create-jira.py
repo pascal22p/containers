@@ -11,6 +11,7 @@ import json
 from datetime import datetime, timedelta, timezone
 import requests
 from requests.exceptions import RequestException
+import argparse
 
 # ======================
 # Configuration
@@ -139,7 +140,7 @@ def validate_pr(repository: str, pr_number: int) -> dict | None:
     return pr
 
 
-def create_jira_ticket(summary: str, description: str) -> dict | None:
+def create_jira_ticket(summary: str, description: str, dry_run: bool) -> dict | None:
     if not JIRA_BEARER_TOKEN:
         print("Error: JIRA_BEARER_TOKEN environment variable is required")
         sys.exit(1)
@@ -166,27 +167,36 @@ def create_jira_ticket(summary: str, description: str) -> dict | None:
     }
 
     print(f"→ POST {url}")
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-    except RequestException as e:
-        print(f"💥 Error while creating jira ticket with error {e}")
+    if dry_run:
+        print(f"❓ Ticket for {summary} created")
         return None
-
-    print(f"← Status: {response.status_code}")
-    print(f"← Response:\n{response.text}\n")
-
-    if response.status_code in (200, 201):
-        data = response.json()
-        print(f"✅ Ticket created successfully!")
-        print(f"    Key : {data.get('key')}")
-        print(f"    URL : {JIRA_URL.rstrip('/')}/browse/{data.get('key')}")
-        return data
     else:
-        print(f"❌ Failed to create ticket (HTTP {response.status_code})")
-        return None
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+        except RequestException as e:
+            print(f"💥 Error while creating jira ticket with error {e}")
+            return None
+
+        print(f"← Status: {response.status_code}")
+        print(f"← Response:\n{response.text}\n")
+
+        if response.status_code in (200, 201):
+            data = response.json()
+            print(f"✅ Ticket created successfully!")
+            print(f"    Key : {data.get('key')}")
+            print(f"    URL : {JIRA_URL.rstrip('/')}/browse/{data.get('key')}")
+            return data
+        else:
+            print(f"❌ Failed to create ticket (HTTP {response.status_code})")
+            return None
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dry-run", default=False,
+        help="Do not create Jira ticket")
+    args = parser.parse_args()
+
     print(f"Looking for 'PR created' entries in the last {HOURS_LOOKBACK} hours...")
     entries = find_all_prs_created(LOG_FILE, HOURS_LOOKBACK)
 
@@ -237,7 +247,7 @@ def main():
 PR URL: {pr_url}
 """
 
-        result = create_jira_ticket(summary, description)
+        result = create_jira_ticket(summary, description, args.dry_run)
 
         if result is not None:
             # Record into state dictionary
