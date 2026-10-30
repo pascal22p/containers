@@ -19,7 +19,7 @@ module.exports = {
       "description": "Allow only Scala 3.3.x versions",
       "matchManagers": ["sbt"],
       "matchPackageNames": ["org.scala-lang:scala3-library_3"],
-      "allowedVersions": "/^3\\.3\\.\\d+$/"
+      "allowedVersions": "<3.4.0"
     },
     {
       "description": "Prevent sbt upgrades to 2.x",
