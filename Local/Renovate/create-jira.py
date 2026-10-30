@@ -235,6 +235,9 @@ def main():
 
         # Build Jira content
         summary = pr_title
+        lines = pr_data["body"].splitlines()
+        index = lines.index("---") if "---" in lines else len(lines)
+        truncated_pr_body = "\n".join(lines[:index])
 
         description = f"""Renovate created a new Pull Request.
 
@@ -245,6 +248,9 @@ def main():
 *Created at:* {created_at}
 
 PR URL: {pr_url}
+
+PR description:
+{truncated_pr_body}
 """
 
         result = create_jira_ticket(summary, description, args.dry_run)
