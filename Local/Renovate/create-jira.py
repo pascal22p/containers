@@ -22,6 +22,13 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")  # needed for private repos
 
 PROJECT_KEY = os.getenv("PROJECT_KEY", "PROJ")
 ISSUE_TYPE = os.getenv("ISSUE_TYPE", "Task")
+JIRA_EPIC_KEY = os.getenv("JIRA_EPIC_KEY")  # optional, can be None
+JIRA_EPIC = os.getenv("JIRA_EPIC")  # optional, can be None
+JIRA_LABELS = [
+    label.strip()
+    for label in os.getenv("JIRA_LABELS", "").split(",")
+    if label.strip()
+]
 
 LOG_FILE = os.getenv("RENOVATE_LOG_FILE", "renovate/renovate.log")
 HOURS_LOOKBACK = int(os.getenv("HOURS_LOOKBACK", "6"))
@@ -165,6 +172,12 @@ def create_jira_ticket(summary: str, description: str, dry_run: bool) -> dict | 
             }
         }
     }
+
+    if JIRA_EPIC and JIRA_EPIC.strip() and JIRA_EPIC_KEY and JIRA_EPIC_KEY.strip():
+        payload["fields"][JIRA_EPIC_KEY] = JIRA_EPIC
+
+    if JIRA_LABELS:
+        payload["fields"]["labels"] = JIRA_LABELS
 
     print(f"→ POST {url}")
     if dry_run:
