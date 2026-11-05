@@ -17,7 +17,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   homebridge:
-    image: homebridge/homebridge:latest
+    image: homebridge/homebridge:2026-11-02
     container_name: homebridge
     restart: always
     network_mode: host

@@ -141,10 +141,11 @@ loki.source.journal "journal" {
 // central-heating
 // =========================
 
+
 local.file_match "docker" {
   path_targets = [{
     __address__ = "localhost",
-    __path__    = "/host/var/lib/docker/containers/*/*log",
+    __path__    = "/host/var/lib/docker/containers/*/*-json.log",
     host        = "mediacentre",
     job         = "dockerlogs",
   }]
@@ -156,61 +157,56 @@ loki.process "docker" {
     loki.write.remote.receiver,
   ]
 
-  // Parse the outer Docker JSON log record.
+  // Preserve Docker's optional attrs before unpacking the log record.
+  stage.json {
+    expressions = {
+      attrs = "",
+    }
+  }
+
+  // Extract the Docker JSON log fields.
   stage.json {
     expressions = {
       output = "log",
       stream = "stream",
       time   = "time",
-      attrs  = "",
     }
   }
 
-  // Extract the Docker tag from attrs, where available.
+  // Read the configured Docker tag from attrs, if present.
   stage.json {
     expressions = {
       tag = "",
     }
-
     source = "attrs"
   }
 
-  // Expected tag format:
+  // Expected tag:
   // image_name|container_name|image_id|container_id
   stage.regex {
     expression = "^(?P<image_name>[^|]+)\\|(?P<container_name>[^|]+)\\|(?P<image_id>[^|]+)\\|(?P<container_id>[^|]+)$"
     source     = "tag"
   }
 
-  // Promote Docker metadata to labels.
   stage.labels {
     values = {
       container_name = "container_name",
       image_name     = "image_name",
       stream         = "stream",
+      app            = "container_name",
     }
   }
 
-  // Discard every container except central-heating.
-  stage.match {
-    selector = "{container_name!=\"central-heating\"}"
-
-    action = "drop"
-  }
-
-  // Parse application JSON logs when present.
-  // Plain-text log lines are preserved as well.
+  // Parse application JSON where possible.
   stage.json {
     expressions = {
       level   = "level",
       logger  = "logger_name",
       message = "message",
     }
-
     source = "output"
   }
 
-  // Add the application label and useful structured fields.
   stage.labels {
     values = {
       level  = "level",
@@ -218,19 +214,12 @@ loki.process "docker" {
     }
   }
 
-  stage.static_labels {
-    values = {
-      app = "central-heating",
-    }
-  }
-
-  // Use the original Docker timestamp.
   stage.timestamp {
     source = "time"
     format = "RFC3339Nano"
   }
 
-  // Emit the application message instead of the outer Docker JSON.
+  // Keep plain-text logs intact if there is no JSON message field.
   stage.output {
     source = "output"
   }
@@ -408,5 +397,15 @@ prometheus.scrape "mariadb" {
   forward_to = [
     prometheus.remote_write.mimir.receiver,
   ]
+}
+
+loki.source.syslog "draytek" {
+  listener {
+    address       = "0.0.0.0:514"
+    protocol      = "udp"
+    syslog_format = "rfc3164"
+    labels        = { job = "draytek", host = "vigor2927" }
+  }
+  forward_to = [loki.write.loki.receiver]
 }
 
