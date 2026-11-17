@@ -1,0 +1,26 @@
+services:
+  tinymediamanager:
+    image: tinymediamanager/tinymediamanager:latest
+    container_name: tinymediamanager
+    environment:
+      - USER_ID=968
+      - GROUP_ID=1001
+      - ALLOW_DIRECT_VNC=true
+      - LC_ALL=en_US.UTF-8 # force UTF8
+      - LANG=en_US.UTF-8   # force UTF8
+      - PASSWORD=password
+    volumes:
+      - ./data:/data
+      - /mnt/oldhome/kodi/Movies_Children:/media/Movies_Children
+      - /mnt/oldhome/kodi/Movies:/media/Movies
+      - /mnt/oldhome/kodi/Series:/media/Series
+      - /home/kodi/Music:/media/Music
+    ports:
+      - 4000:4000 # Webinterface
+      - 5900:5900 # VNC port      
+    restart: unless-stopped
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        max-file: "5"   # number of files or file count
+        max-size: "20m" # file size  
