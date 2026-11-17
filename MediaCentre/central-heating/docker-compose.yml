@@ -25,6 +25,7 @@ services:
       MQTT_IS_ENABLED: ${MQTT_IS_ENABLED}
       MQTT_TRV_DEVICES: ${MQTT_TRV_DEVICES}
       MQTT_TEMPERATURE_DEVICES: ${MQTT_TEMPERATURE_DEVICES}
+      MQTT_UPDATE_SCHEDULES: ${MQTT_UPDATE_SCHEDULES}
       TEMPERATURE_SENSOR_MAPPING: ${TEMPERATURE_SENSOR_MAPPING}
       GRAPHITE_HOST: ${GRAPHITE_HOST}
       GRAPHITE_PORT: ${GRAPHITE_PORT}
@@ -84,6 +85,11 @@ services:
     networks:
       - dockernet
     command: --event-scheduler=ON
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        max-size: "50m"
+        max-file: "3"
 
   adminer-ch:
     image: adminer:latest
@@ -97,6 +103,11 @@ services:
       - mariadb-ch
     networks:
       - dockernet
+    logging:
+      options:
+        tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+        max-size: "50m"
+        max-file: "3"
 
 volumes:
   mariadb:
