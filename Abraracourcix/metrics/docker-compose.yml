@@ -191,7 +191,7 @@ services:
         tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
 
   pyroscope:
-    image: grafana/pyroscope:2.4.3
+    image: grafana/pyroscope:2.4.4
     container_name: pyroscope
     volumes:
       - ./pyroscope/pyroscope.yaml:/etc/pyroscope/config.yaml
